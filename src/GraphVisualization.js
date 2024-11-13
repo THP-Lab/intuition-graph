@@ -28,20 +28,30 @@ const GraphVisualization = () => {
   }, []);
 
   const handleNodeClick = useCallback(
-    (node) => {
-      if (!graphApi || !node.type === "triple") return;
+    (node, event) => {
+      if (!graphApi) return;
 
-      const newData = graphApi.toggleTripleExpansion(node);
-      setGraphData({
-        nodes: newData.nodes,
-        links: newData.links,
-      });
+      if (node.type === "triple") {
+        const newData = graphApi.toggleTripleExpansion(node);
+        setGraphData({
+          nodes: newData.nodes,
+          links: newData.links,
+        });
+      }
 
-      // Center view on clicked node and zoom
+      // Get current zoom level
+      const currentZoom = fgRef.current.zoom();
+
+      // Center on node with animation
       if (fgRef.current) {
-        fgRef.current.centerAt(node.x, node.y, 1000);
-        fgRef.current.zoom(2, 1000);
-        fgRef.current.d3ReheatSimulation();
+        const fg = fgRef.current;
+
+        // Center the node
+        fg.centerAt(node.x, node.y, 1000);
+
+        // Maintain or slightly increase zoom for better visibility
+        const targetZoom = Math.max(currentZoom, 2);
+        fg.zoom(targetZoom, 1000);
       }
     },
     [graphApi]
@@ -137,6 +147,8 @@ const GraphVisualization = () => {
           }
         }}
         onEngineStop={handleEngineStop}
+        minZoom={0.5}
+        maxZoom={8}
       />
     </div>
   );
