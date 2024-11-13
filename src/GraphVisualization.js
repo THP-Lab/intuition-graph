@@ -32,51 +32,42 @@ const GraphVisualization = () => {
     }
   }, []);
 
-  const nodeCanvasObject = useCallback(
-    (node, ctx, globalScale) => {
-      if (!node.x || !node.y) return; // Skip rendering if coordinates are invalid
+  const nodeCanvasObject = useCallback((node, ctx, globalScale) => {
+    if (!node.x || !node.y) return; // Skip rendering if coordinates are invalid
 
-      const label = node.label;
-      const fontSize = node.isTriple ? 14 / globalScale : 12 / globalScale;
+    const label = node.label;
+    const fontSize = 12 / globalScale;
+    const radius = 12; // Fixed size for all nodes
 
-      // Calculate node size based on connections
-      const linkedNodes = graphData.links.filter(
-        (link) => link.source.id === node.id || link.target.id === node.id
-      ).length;
-      const baseRadius = node.isTriple ? 15 : 8;
-      const radius = baseRadius + Math.sqrt(linkedNodes) * 2;
+    // Draw node shadow
+    ctx.beginPath();
+    ctx.arc(node.x, node.y, radius + 2, 0, 2 * Math.PI);
+    ctx.fillStyle = "rgba(0, 0, 0, 0.3)";
+    ctx.fill();
 
-      // Draw node shadow
-      ctx.beginPath();
-      ctx.arc(node.x, node.y, radius + 2, 0, 2 * Math.PI);
-      ctx.fillStyle = "rgba(0, 0, 0, 0.3)";
-      ctx.fill();
+    // Draw node circle
+    ctx.beginPath();
+    ctx.arc(node.x, node.y, radius, 0, 2 * Math.PI);
+    ctx.fillStyle = node.color;
+    ctx.fill();
+    ctx.strokeStyle = "#ffffff33";
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
 
-      // Draw node circle
-      ctx.beginPath();
-      ctx.arc(node.x, node.y, radius, 0, 2 * Math.PI);
-      ctx.fillStyle = node.color;
-      ctx.fill();
-      ctx.strokeStyle = "#ffffff33";
-      ctx.lineWidth = 1.5;
-      ctx.stroke();
+    // Set up text properties
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.font = `${fontSize}px Sans-Serif`;
 
-      // Set up text properties
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-      ctx.font = `${fontSize}px Sans-Serif`;
+    // Measure text width
+    const textWidth = ctx.measureText(label).width;
 
-      // Measure text width
-      const textWidth = ctx.measureText(label).width;
-
-      // Only draw label if it fits within the node diameter (with padding)
-      if (textWidth < radius * 1.8) {
-        ctx.fillStyle = "#fff";
-        ctx.fillText(label, node.x, node.y);
-      }
-    },
-    [graphData.links]
-  );
+    // Only draw label if it fits within the node diameter (with padding)
+    if (textWidth < radius * 1.8) {
+      ctx.fillStyle = "#fff";
+      ctx.fillText(label, node.x, node.y);
+    }
+  }, []);
 
   const handleEngineStop = useCallback(() => {
     if (isInitialLoad && fgRef.current) {
@@ -93,13 +84,8 @@ const GraphVisualization = () => {
         graphData={graphData}
         nodeCanvasObject={nodeCanvasObject}
         nodePointerAreaPaint={(node, color, ctx) => {
-          if (!node.x || !node.y) return; // Skip rendering if coordinates are invalid
-
-          const linkedNodes = graphData.links.filter(
-            (link) => link.source.id === node.id || link.target.id === node.id
-          ).length;
-          const baseRadius = node.isTriple ? 15 : 8;
-          const radius = baseRadius + Math.sqrt(linkedNodes) * 2;
+          if (!node.x || !node.y) return;
+          const radius = 12; // Fixed size for all nodes
 
           ctx.beginPath();
           ctx.arc(node.x, node.y, radius + 4, 0, 2 * Math.PI);
