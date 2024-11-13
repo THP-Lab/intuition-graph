@@ -4,23 +4,30 @@ export const transformToGraphData = (triples) => {
   const links = [];
   const nodeMap = new Map();
   const nodeRoles = new Map(); // Track if node is used as subject, predicate, or object
+  const groupNodes = new Map(); // Track predicates/objects with multiple subjects
 
-  // First pass: identify roles for each node
+  // First pass: identify roles for each node and group nodes
   triples.forEach(({ subject, predicate, object }) => {
-    const [subLabel, predLabel, objLabel] = [
-      subject.label,
-      predicate.label,
-      object.label,
-    ];
-
     // Track roles (nodes can have multiple roles)
-    if (!nodeRoles.has(subLabel)) nodeRoles.set(subLabel, new Set());
-    if (!nodeRoles.has(predLabel)) nodeRoles.set(predLabel, new Set());
-    if (!nodeRoles.has(objLabel)) nodeRoles.set(objLabel, new Set());
+    if (!nodeRoles.has(subject.id)) nodeRoles.set(subject.id, new Set());
+    if (!nodeRoles.has(predicate.id)) nodeRoles.set(predicate.id, new Set());
+    if (!nodeRoles.has(object.id)) nodeRoles.set(object.id, new Set());
 
-    nodeRoles.get(subLabel).add("subject");
-    nodeRoles.get(predLabel).add("predicate");
-    nodeRoles.get(objLabel).add("object");
+    nodeRoles.get(subject.id).add("subject");
+    nodeRoles.get(predicate.id).add("predicate");
+    nodeRoles.get(object.id).add("object");
+
+    // Track group nodes for predicates/objects with multiple subjects
+    const predObjId = `${predicate.id}-${object.id}`;
+    if (!groupNodes.has(predObjId)) {
+      groupNodes.set(predObjId, {
+        id: predObjId,
+        label: `${predicate.label} / ${object.label}`,
+        isGroup: true,
+        color: "#FF9800", // Orange for group nodes
+        role: "group",
+      });
+    }
   });
 
   // Helper to determine node color based on its roles
@@ -28,54 +35,55 @@ export const transformToGraphData = (triples) => {
     if (roles.has("predicate")) return "#ff0000"; // Warm yellow for predicates
     if (roles.has("subject")) return "#4361EE"; // Vibrant blue for subjects
     if (roles.has("object")) return "#9D4EDD"; // Rich purple for objects
+    if (roles.has("group")) return "#FF9800"; // Orange for group nodes
     return "#666666"; // Default gray
   };
 
   // Second pass: create nodes and links
   triples.forEach(({ subject, predicate, object }) => {
-    const [subLabel, predLabel, objLabel] = [
-      subject.label,
-      predicate.label,
-      object.label,
-    ];
-
     // Create nodes if they don't exist
-    [subLabel, predLabel, objLabel].forEach((label) => {
-      if (!nodeMap.has(label)) {
-        const roles = nodeRoles.get(label);
+    [
+      { id: subject.id, label: subject.label },
+      { id: predicate.id, label: predicate.label },
+      { id: object.id, label: object.label },
+    ].forEach(({ id, label }) => {
+      if (!nodeMap.has(id)) {
+        const roles = nodeRoles.get(id);
         const node = {
-          id: label,
+          id,
           label,
           isTriple: false,
           color: getNodeColor(roles),
           role: Array.from(roles)[0], // Store primary role for reference
         };
-        nodeMap.set(label, node);
+        nodeMap.set(id, node);
         nodes.push(node);
       }
     });
 
-    // Add triple node
-    const tripleId = `${subLabel}-${predLabel}-${objLabel}`;
-    const tripleNode = {
-      id: tripleId,
-      label: predLabel,
-      isTriple: true,
-      color: "#FF5733", // Same as predicate color
-      role: "predicate",
-    };
-    nodes.push(tripleNode);
+    // Add group node if it doesn't exist
+    const predObjId = `${predicate.id}-${object.id}`;
+    if (!nodeMap.has(predObjId)) {
+      const groupNode = groupNodes.get(predObjId);
+      nodeMap.set(predObjId, groupNode);
+      nodes.push(groupNode);
+    }
 
     // Create directed links
     links.push({
-      source: subLabel,
-      target: tripleId,
-      type: "subject-to-predicate",
+      source: subject.id,
+      target: predObjId,
+      type: "subject-to-group",
     });
     links.push({
-      source: tripleId,
-      target: objLabel,
-      type: "predicate-to-object",
+      source: predObjId,
+      target: predicate.id,
+      type: "group-to-predicate",
+    });
+    links.push({
+      source: predObjId,
+      target: object.id,
+      type: "group-to-object",
     });
   });
 

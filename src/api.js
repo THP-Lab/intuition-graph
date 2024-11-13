@@ -9,14 +9,18 @@ export const fetchTriples = async () => {
     query {
       triples(limit: 1000) {
         items {
+          id
           subject {
             label
+            id
           }
           predicate {
             label
+            id
           }
           object {
             label
+            id
           }
         }
       }

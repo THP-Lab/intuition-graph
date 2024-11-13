@@ -9,6 +9,10 @@ const GraphVisualization = () => {
   const [isInitialLoad, setIsInitialLoad] = useState(true);
   const fgRef = useRef();
 
+  const groupNodeWidth = 80;
+  const groupNodeHeight = 40;
+  const groupNodeRadius = 10;
+
   useEffect(() => {
     const loadData = async () => {
       try {
@@ -32,42 +36,102 @@ const GraphVisualization = () => {
     }
   }, []);
 
-  const nodeCanvasObject = useCallback((node, ctx, globalScale) => {
-    if (!node.x || !node.y) return; // Skip rendering if coordinates are invalid
+  const nodeCanvasObject = useCallback(
+    (node, ctx, globalScale) => {
+      if (!node.x || !node.y) return; // Skip rendering if coordinates are invalid
 
-    const label = node.label;
-    const fontSize = 12 / globalScale;
-    const radius = 12; // Fixed size for all nodes
+      const label = node.label;
+      const fontSize = 12 / globalScale;
+      const radius = 12; // Fixed size for regular nodes
 
-    // Draw node shadow
-    ctx.beginPath();
-    ctx.arc(node.x, node.y, radius + 2, 0, 2 * Math.PI);
-    ctx.fillStyle = "rgba(0, 0, 0, 0.3)";
-    ctx.fill();
+      if (node.isGroup) {
+        // Draw group node rounded rectangle
+        ctx.beginPath();
+        ctx.roundRect(
+          node.x - groupNodeWidth / 2,
+          node.y - groupNodeHeight / 2,
+          groupNodeWidth,
+          groupNodeHeight,
+          groupNodeRadius
+        );
+        ctx.fillStyle = node.color;
+        ctx.fill();
+        ctx.strokeStyle = "#ffffff33";
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
 
-    // Draw node circle
-    ctx.beginPath();
-    ctx.arc(node.x, node.y, radius, 0, 2 * Math.PI);
-    ctx.fillStyle = node.color;
-    ctx.fill();
-    ctx.strokeStyle = "#ffffff33";
-    ctx.lineWidth = 1.5;
-    ctx.stroke();
+        // Extract predicate and object nodes from the group node
+        const predNode = graphData.nodes.find(
+          (n) => n.id === node.id.split("-")[0]
+        );
+        const objNode = graphData.nodes.find(
+          (n) => n.id === node.id.split("-")[1]
+        );
 
-    // Set up text properties
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.font = `${fontSize}px Sans-Serif`;
+        // Draw predicate and object nodes inside the rounded rectangle
+        const predX = node.x - groupNodeWidth / 4;
+        const predY = node.y;
+        const objX = node.x + groupNodeWidth / 4;
+        const objY = node.y;
 
-    // Measure text width
-    const textWidth = ctx.measureText(label).width;
+        // Draw predicate node
+        ctx.beginPath();
+        ctx.arc(predX, predY, radius, 0, 2 * Math.PI);
+        ctx.fillStyle = predNode.color;
+        ctx.fill();
+        ctx.strokeStyle = "#ffffff33";
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
 
-    // Only draw label if it fits within the node diameter (with padding)
-    if (textWidth < radius * 1.8) {
-      ctx.fillStyle = "#fff";
-      ctx.fillText(label, node.x, node.y);
-    }
-  }, []);
+        // Draw object node
+        ctx.beginPath();
+        ctx.arc(objX, objY, radius, 0, 2 * Math.PI);
+        ctx.fillStyle = objNode.color;
+        ctx.fill();
+        ctx.strokeStyle = "#ffffff33";
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+
+        // Draw predicate and object labels inside the nodes
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.font = `${fontSize}px Sans-Serif`;
+        ctx.fillStyle = "#fff";
+        ctx.fillText(predNode.label, predX, predY);
+        ctx.fillText(objNode.label, objX, objY);
+      } else {
+        // Draw node shadow
+        ctx.beginPath();
+        ctx.arc(node.x, node.y, radius + 2, 0, 2 * Math.PI);
+        ctx.fillStyle = "rgba(0, 0, 0, 0.3)";
+        ctx.fill();
+
+        // Draw node circle
+        ctx.beginPath();
+        ctx.arc(node.x, node.y, radius, 0, 2 * Math.PI);
+        ctx.fillStyle = node.color;
+        ctx.fill();
+        ctx.strokeStyle = "#ffffff33";
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+
+        // Set up text properties
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.font = `${fontSize}px Sans-Serif`;
+
+        // Measure text width
+        const textWidth = ctx.measureText(label).width;
+
+        // Only draw label if it fits within the node diameter (with padding)
+        if (textWidth < radius * 1.8) {
+          ctx.fillStyle = "#fff";
+          ctx.fillText(label, node.x, node.y);
+        }
+      }
+    },
+    [graphData.nodes]
+  );
 
   const handleEngineStop = useCallback(() => {
     if (isInitialLoad && fgRef.current) {
@@ -85,7 +149,7 @@ const GraphVisualization = () => {
         nodeCanvasObject={nodeCanvasObject}
         nodePointerAreaPaint={(node, color, ctx) => {
           if (!node.x || !node.y) return;
-          const radius = 12; // Fixed size for all nodes
+          const radius = node.isGroup ? groupNodeWidth / 2 : 12; // Adjust for group nodes
 
           ctx.beginPath();
           ctx.arc(node.x, node.y, radius + 4, 0, 2 * Math.PI);
