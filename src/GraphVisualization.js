@@ -100,23 +100,28 @@ const GraphVisualization = () => {
         linkDirectionalArrowRelPos={1}
         linkColor={() => "#666"}
         backgroundColor="#1a1a1a"
-        d3AlphaDecay={0.01}
-        d3VelocityDecay={0.08}
-        cooldownTicks={100}
+        d3AlphaDecay={0.005} // Slower decay for better stabilization
+        d3VelocityDecay={0.1}
+        cooldownTicks={200}
         linkWidth={1.5}
         nodeRelSize={6}
+        warmupTicks={200}
         d3Force={(forceName, force) => {
           if (forceName === "link") {
-            force.distance(30).strength(1);
+            // Much larger distance between connected nodes
+            force.distance(150).strength(0.5);
           }
           if (forceName === "charge") {
-            force.strength(-30);
+            // Much stronger repulsion
+            force.strength(-1000).distanceMax(500);
           }
           if (forceName === "center") {
-            force.strength(1);
+            // Moderate center force
+            force.strength(0.5);
           }
           if (forceName === "collide") {
-            force.radius(20).strength(0.2);
+            // Extremely strong collision with large radius
+            force.radius(80).strength(5).iterations(10);
           }
         }}
         onEngineStop={handleEngineStop}
