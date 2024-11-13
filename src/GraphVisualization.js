@@ -104,7 +104,10 @@ const GraphVisualization = () => {
         }}
         onNodeClick={handleNodeClick}
         linkDirectionalParticles={2}
-        linkDirectionalParticleSpeed={0.005}
+        linkDirectionalParticleSpeed={(d) => 0.005}
+        linkDirectionalParticleWidth={2}
+        linkDirectionalArrowLength={3}
+        linkDirectionalArrowRelPos={1}
         linkColor={() => "#666"}
         backgroundColor="#1a1a1a"
         d3AlphaDecay={0.01}

@@ -4,62 +4,40 @@ export const transformToGraphData = (triples) => {
   const links = [];
   const nodeMap = new Map();
 
-  // Helper function to create or get node
-  const getOrCreateNode = (id, label, type = "atom", meta = {}) => {
-    if (!nodeMap.has(id)) {
-      const node = {
-        id,
-        label,
-        type,
-        ...meta,
-        collapsed: type === "triple",
-        radius: type === "triple" ? 15 : 8,
-        color: type === "triple" ? "#ff9900" : "#1f77b4",
-      };
-      nodeMap.set(id, node);
-      nodes.push(node);
-    }
-    return nodeMap.get(id);
-  };
-
-  // Process triples and create nested structure
   triples.forEach(({ subject, predicate, object }) => {
-    const subNode = getOrCreateNode(subject.label, subject.label);
-    const predNode = getOrCreateNode(predicate.label, predicate.label);
-    const objNode = getOrCreateNode(object.label, object.label);
+    const [subLabel, predLabel, objLabel] = [
+      subject.label,
+      predicate.label,
+      object.label,
+    ];
 
-    // Create triple node
-    const tripleId = `${subject.label}-${predicate.label}-${object.label}`;
-    const tripleNode = getOrCreateNode(tripleId, predicate.label, "triple", {
-      components: {
-        subject: subject.label,
-        predicate: predicate.label,
-        object: object.label,
-      },
+    // Ensure unique nodes
+    [subLabel, predLabel, objLabel].forEach((label) => {
+      if (!nodeMap.has(label)) {
+        const node = { id: label, label, isTriple: false };
+        nodeMap.set(label, node);
+        nodes.push(node);
+      }
     });
 
-    // Add permanent links between triple and its components
+    // Add a triple as a "composite" node
+    const tripleId = `${subLabel}-${predLabel}-${objLabel}`;
+    const tripleNode = { id: tripleId, label: predLabel, isTriple: true };
+    nodes.push(tripleNode);
+
+    // Create directed links representing the triple relationship
+    // subject -> predicate -> object
     links.push({
-      source: tripleNode.id,
-      target: subNode.id,
-      type: "triple-component",
+      source: subLabel,
+      target: tripleId,
+      type: "subject-to-predicate",
     });
     links.push({
-      source: tripleNode.id,
-      target: objNode.id,
-      type: "triple-component",
+      source: tripleId,
+      target: objLabel,
+      type: "predicate-to-object",
     });
   });
 
-  // Function to toggle triple expansion
-  const toggleTripleExpansion = (tripleNode) => {
-    tripleNode.collapsed = !tripleNode.collapsed;
-    return { nodes: [...nodes], links: [...links] };
-  };
-
-  return {
-    nodes,
-    links,
-    toggleTripleExpansion,
-  };
+  return { nodes, links };
 };
