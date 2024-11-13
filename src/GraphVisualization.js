@@ -105,7 +105,8 @@ const GraphVisualization = () => {
 
   const handleEngineStop = useCallback(() => {
     if (isInitialLoad && fgRef.current) {
-      fgRef.current.zoomToFit(400);
+      // Add padding to ensure all nodes are visible
+      fgRef.current.zoomToFit(400, 100);
       setIsInitialLoad(false);
     }
   }, [isInitialLoad]);
@@ -140,15 +141,27 @@ const GraphVisualization = () => {
         nodeRelSize={6}
         d3Force={(forceName, force) => {
           if (forceName === "link") {
-            force.distance(100).strength(0.2);
+            // Even shorter link distance
+            force.distance(30).strength(1);
           }
           if (forceName === "charge") {
-            force.strength(-120);
+            // Much weaker repulsion
+            force.strength(-30);
+          }
+          if (forceName === "center") {
+            // Stronger centering force
+            force.strength(1);
+          }
+          if (forceName === "collide") {
+            // Minimal collision radius
+            force.radius(20).strength(0.2);
           }
         }}
         onEngineStop={handleEngineStop}
-        minZoom={0.5}
+        minZoom={0.1} // Much lower minimum zoom
         maxZoom={8}
+        width={window.innerWidth}
+        height={window.innerHeight}
       />
     </div>
   );
