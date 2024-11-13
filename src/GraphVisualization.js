@@ -7,6 +7,7 @@ import { transformToGraphData } from "./graphData";
 const GraphVisualization = () => {
   const [graphData, setGraphData] = useState({ nodes: [], links: [] });
   const [graphApi, setGraphApi] = useState(null);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
   const fgRef = useRef();
 
   useEffect(() => {
@@ -92,6 +93,13 @@ const GraphVisualization = () => {
     [graphData.links]
   );
 
+  const handleEngineStop = useCallback(() => {
+    if (isInitialLoad && fgRef.current) {
+      fgRef.current.zoomToFit(400);
+      setIsInitialLoad(false);
+    }
+  }, [isInitialLoad]);
+
   return (
     <div style={{ width: "100%", height: "100vh" }}>
       <ForceGraph2D
@@ -128,11 +136,7 @@ const GraphVisualization = () => {
             force.strength(-120);
           }
         }}
-        onEngineStop={() => {
-          if (fgRef.current) {
-            fgRef.current.zoomToFit(400);
-          }
-        }}
+        onEngineStop={handleEngineStop}
       />
     </div>
   );
