@@ -7,7 +7,7 @@ const client = new GraphQLClient(endpoint);
 export const fetchTriples = async () => {
   const query = gql`
     query {
-      triples {
+      triples(limit: 1000) {
         items {
           subject {
             label

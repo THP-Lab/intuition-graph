@@ -34,6 +34,8 @@ const GraphVisualization = () => {
 
   const nodeCanvasObject = useCallback(
     (node, ctx, globalScale) => {
+      if (!node.x || !node.y) return; // Skip rendering if coordinates are invalid
+
       const label = node.label;
       const fontSize = node.isTriple ? 14 / globalScale : 12 / globalScale;
 
@@ -47,15 +49,15 @@ const GraphVisualization = () => {
       // Draw node shadow
       ctx.beginPath();
       ctx.arc(node.x, node.y, radius + 2, 0, 2 * Math.PI);
-      ctx.fillStyle = "rgba(0, 0, 0, 0.2)";
+      ctx.fillStyle = "rgba(0, 0, 0, 0.3)";
       ctx.fill();
 
       // Draw node circle
       ctx.beginPath();
       ctx.arc(node.x, node.y, radius, 0, 2 * Math.PI);
-      ctx.fillStyle = node.isTriple ? "#ff9900" : "#1f77b4";
+      ctx.fillStyle = node.color;
       ctx.fill();
-      ctx.strokeStyle = "#fff";
+      ctx.strokeStyle = "#ffffff33";
       ctx.lineWidth = 1.5;
       ctx.stroke();
 
@@ -91,6 +93,8 @@ const GraphVisualization = () => {
         graphData={graphData}
         nodeCanvasObject={nodeCanvasObject}
         nodePointerAreaPaint={(node, color, ctx) => {
+          if (!node.x || !node.y) return; // Skip rendering if coordinates are invalid
+
           const linkedNodes = graphData.links.filter(
             (link) => link.source.id === node.id || link.target.id === node.id
           ).length;
