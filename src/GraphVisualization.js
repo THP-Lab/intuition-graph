@@ -6,7 +6,6 @@ import { transformToGraphData } from "./graphData";
 
 const GraphVisualization = () => {
   const [graphData, setGraphData] = useState({ nodes: [], links: [] });
-  const [graphApi, setGraphApi] = useState(null);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
   const fgRef = useRef();
 
@@ -15,11 +14,7 @@ const GraphVisualization = () => {
       try {
         const triples = await fetchTriples();
         const data = transformToGraphData(triples);
-        setGraphApi(data);
-        setGraphData({
-          nodes: data.nodes,
-          links: data.links,
-        });
+        setGraphData(data);
       } catch (error) {
         console.error("Error loading graph data:", error);
       }
@@ -27,47 +22,26 @@ const GraphVisualization = () => {
     loadData();
   }, []);
 
-  const handleNodeClick = useCallback(
-    (node, event) => {
-      if (!graphApi) return;
-
-      if (node.type === "triple") {
-        const newData = graphApi.toggleTripleExpansion(node);
-        setGraphData({
-          nodes: newData.nodes,
-          links: newData.links,
-        });
-      }
-
-      // Get current zoom level
-      const currentZoom = fgRef.current.zoom();
-
-      // Center on node with animation
-      if (fgRef.current) {
-        const fg = fgRef.current;
-
-        // Center the node
-        fg.centerAt(node.x, node.y, 1000);
-
-        // Maintain or slightly increase zoom for better visibility
-        const targetZoom = Math.max(currentZoom, 2);
-        fg.zoom(targetZoom, 1000);
-      }
-    },
-    [graphApi]
-  );
+  const handleNodeClick = useCallback((node) => {
+    // Center view on clicked node and zoom
+    if (fgRef.current) {
+      const fg = fgRef.current;
+      const currentZoom = fg.zoom();
+      fg.centerAt(node.x, node.y, 1000);
+      fg.zoom(Math.max(currentZoom, 2), 1000);
+    }
+  }, []);
 
   const nodeCanvasObject = useCallback(
     (node, ctx, globalScale) => {
       const label = node.label;
-      const fontSize =
-        node.type === "triple" ? 14 / globalScale : 12 / globalScale;
+      const fontSize = node.isTriple ? 14 / globalScale : 12 / globalScale;
 
       // Calculate node size based on connections
       const linkedNodes = graphData.links.filter(
         (link) => link.source.id === node.id || link.target.id === node.id
       ).length;
-      const baseRadius = node.type === "triple" ? 15 : 8;
+      const baseRadius = node.isTriple ? 15 : 8;
       const radius = baseRadius + Math.sqrt(linkedNodes) * 2;
 
       // Draw node shadow
@@ -79,25 +53,24 @@ const GraphVisualization = () => {
       // Draw node circle
       ctx.beginPath();
       ctx.arc(node.x, node.y, radius, 0, 2 * Math.PI);
-      ctx.fillStyle = node.color;
+      ctx.fillStyle = node.isTriple ? "#ff9900" : "#1f77b4";
       ctx.fill();
       ctx.strokeStyle = "#fff";
       ctx.lineWidth = 1.5;
       ctx.stroke();
 
-      // Draw label
+      // Set up text properties
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
       ctx.font = `${fontSize}px Sans-Serif`;
-      ctx.fillStyle = "#fff";
-      ctx.fillText(label, node.x, node.y);
 
-      // Draw expansion indicator for triples
-      if (node.type === "triple") {
-        const symbol = node.collapsed ? "+" : "-";
+      // Measure text width
+      const textWidth = ctx.measureText(label).width;
+
+      // Only draw label if it fits within the node diameter (with padding)
+      if (textWidth < radius * 1.8) {
         ctx.fillStyle = "#fff";
-        ctx.font = `bold ${16 / globalScale}px Sans-Serif`;
-        ctx.fillText(symbol, node.x, node.y - radius - 4);
+        ctx.fillText(label, node.x, node.y);
       }
     },
     [graphData.links]
@@ -121,7 +94,7 @@ const GraphVisualization = () => {
           const linkedNodes = graphData.links.filter(
             (link) => link.source.id === node.id || link.target.id === node.id
           ).length;
-          const baseRadius = node.type === "triple" ? 15 : 8;
+          const baseRadius = node.isTriple ? 15 : 8;
           const radius = baseRadius + Math.sqrt(linkedNodes) * 2;
 
           ctx.beginPath();
@@ -141,24 +114,20 @@ const GraphVisualization = () => {
         nodeRelSize={6}
         d3Force={(forceName, force) => {
           if (forceName === "link") {
-            // Even shorter link distance
             force.distance(30).strength(1);
           }
           if (forceName === "charge") {
-            // Much weaker repulsion
             force.strength(-30);
           }
           if (forceName === "center") {
-            // Stronger centering force
             force.strength(1);
           }
           if (forceName === "collide") {
-            // Minimal collision radius
             force.radius(20).strength(0.2);
           }
         }}
         onEngineStop={handleEngineStop}
-        minZoom={0.1} // Much lower minimum zoom
+        minZoom={0.1}
         maxZoom={8}
         width={window.innerWidth}
         height={window.innerHeight}
