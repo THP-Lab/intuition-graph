@@ -9,8 +9,8 @@ const GraphVisualization = () => {
   const [isInitialLoad, setIsInitialLoad] = useState(true);
   const fgRef = useRef();
 
-  const groupNodeWidth = 80;
-  const groupNodeHeight = 40;
+  const groupNodeWidth = 60;
+  const groupNodeHeight = 30;
   const groupNodeRadius = 10;
 
   useEffect(() => {
@@ -158,8 +158,8 @@ const GraphVisualization = () => {
         }}
         onNodeClick={handleNodeClick}
         linkDirectionalParticles={2}
-        linkDirectionalParticleSpeed={(d) => 0.005}
-        linkDirectionalParticleWidth={2}
+        linkDirectionalParticleSpeed={(d) => 0.02}
+        linkDirectionalParticleWidth={5}
         linkDirectionalArrowLength={3}
         linkDirectionalArrowRelPos={1}
         linkColor={() => "#666"}

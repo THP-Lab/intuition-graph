@@ -24,7 +24,7 @@ export const transformToGraphData = (triples) => {
         id: predObjId,
         label: `${predicate.label} / ${object.label}`,
         isGroup: true,
-        color: "#FF9800", // Orange for group nodes
+        color: "#2C3E50", // Orange for group nodes
         role: "group",
       });
     }
@@ -32,7 +32,7 @@ export const transformToGraphData = (triples) => {
 
   // Helper to determine node color based on its roles
   const getNodeColor = (roles) => {
-    if (roles.has("predicate")) return "#ff0000"; // Warm yellow for predicates
+    if (roles.has("predicate")) return "#FF9800"; // Orange for predicates
     if (roles.has("subject")) return "#4361EE"; // Vibrant blue for subjects
     if (roles.has("object")) return "#9D4EDD"; // Rich purple for objects
     if (roles.has("group")) return "#FF9800"; // Orange for group nodes
