@@ -1,6 +1,7 @@
 // src/GraphVisualization.js
 import React, { useEffect, useState, useCallback, useRef } from "react";
 import ForceGraph2D from "react-force-graph-2d";
+import * as d3 from "d3";
 import { fetchTriples } from "./api";
 import { transformToGraphData } from "./graphData";
 
@@ -25,6 +26,14 @@ const GraphVisualization = () => {
     };
     loadData();
   }, []);
+
+  // useEffect(() => {
+  //   // add collision force
+  //   fgRef.current.d3Force(
+  //     "collision",
+  //     d3.forceCollide((node) => 40)
+  //   );
+  // }, []);
 
   const handleNodeClick = useCallback((node) => {
     // Center view on clicked node and zoom
