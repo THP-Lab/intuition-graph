@@ -1,9 +1,15 @@
 import React, { useEffect, useState, useCallback, useRef } from "react";
-import ForceGraph2D from "react-force-graph-2d";
-import ForceGraph3D from "react-force-graph-3d";
+import {
+  ForceGraph2D,
+  ForceGraph3D,
+  ForceGraphVR,
+  ForceGraphAR,
+} from "react-force-graph";
+
 import * as d3 from "d3";
 import { fetchTriples } from "./api";
 import { transformToGraphData } from "./graphData";
+import SpriteText from "three-spritetext";
 
 const GraphVisualization = () => {
   const [graphData, setGraphData] = useState({ nodes: [], links: [] });
@@ -30,26 +36,18 @@ const GraphVisualization = () => {
 
   const handleNodeClick = useCallback(
     (node) => {
-      if (fgRef.current) {
-        if (is3D) {
-          // For 3D: Use camera positioning
-          fgRef.current.cameraPosition(
-            { x: node.x, y: node.y, z: 300 }, // New position
-            { x: node.x, y: node.y, z: 0 }, // Look at (target)
-            3000 // Transition time (ms)
-          );
-        } else {
-          // For 2D: Use zoom and centerAt
-          const fg = fgRef.current;
-          const currentZoom = fg.zoom();
-          fg.centerAt(node.x, node.y, 1000);
-          fg.zoom(Math.max(currentZoom, 2), 1000);
-        }
-      }
-    },
-    [is3D]
-  );
+      // Aim at node from outside it
+      const distance = 40;
+      const distRatio = 1 + distance / Math.hypot(node.x, node.y, node.z);
 
+      fgRef.current.cameraPosition(
+        { x: node.x * distRatio, y: node.y * distRatio, z: node.z * distRatio }, // new position
+        node, // lookAt ({ x, y, z })
+        500 // ms transition duration
+      );
+    },
+    [fgRef]
+  );
 
   const nodeCanvasObject = useCallback(
     (node, ctx, globalScale) => {
@@ -113,8 +111,19 @@ const GraphVisualization = () => {
           nodeLabel="label" // Enable tooltip for 3D
           onNodeClick={handleNodeClick}
           linkColor={() => "#666"}
-          backgroundColor="#1a1a1a"
+          linkDirectionalParticles={2}
+          linkDirectionalParticleSpeed={(d) => 0.005}
           nodeAutoColorBy="group"
+          nodeThreeObject={(node) => {
+            const sprite = new SpriteText(node.label);
+            sprite.color = node.color;
+            sprite.backgroundColor = "#33335580";
+            sprite.borderRadius = 1;
+            sprite.textAlign = "center";
+            sprite.textHeight = 2;
+            sprite.padding = 1;
+            return sprite;
+          }}
           onEngineStop={handleEngineStop}
           width={window.innerWidth}
           height={window.innerHeight}
