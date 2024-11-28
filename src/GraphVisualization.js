@@ -28,14 +28,28 @@ const GraphVisualization = () => {
     loadData();
   }, []);
 
-  const handleNodeClick = useCallback((node) => {
-    if (fgRef.current) {
-      const fg = fgRef.current;
-      const currentZoom = fg.zoom();
-      fg.centerAt(node.x, node.y, 1000);
-      fg.zoom(Math.max(currentZoom, 2), 1000);
-    }
-  }, []);
+  const handleNodeClick = useCallback(
+    (node) => {
+      if (fgRef.current) {
+        if (is3D) {
+          // For 3D: Use camera positioning
+          fgRef.current.cameraPosition(
+            { x: node.x, y: node.y, z: 300 }, // New position
+            { x: node.x, y: node.y, z: 0 }, // Look at (target)
+            3000 // Transition time (ms)
+          );
+        } else {
+          // For 2D: Use zoom and centerAt
+          const fg = fgRef.current;
+          const currentZoom = fg.zoom();
+          fg.centerAt(node.x, node.y, 1000);
+          fg.zoom(Math.max(currentZoom, 2), 1000);
+        }
+      }
+    },
+    [is3D]
+  );
+
 
   const nodeCanvasObject = useCallback(
     (node, ctx, globalScale) => {
