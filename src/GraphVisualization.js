@@ -160,11 +160,9 @@ const GraphVisualization = () => {
 
       {viewMode === "VR" && (
         <>
-          {console.log("Graph Data for VR:", graphData)}
           <GraphVR graphData={graphData} onNodeClick={handleNodeClick} />
         </>
       )}
-
 
       {/* Graph legend */}
       <GraphLegend colors={colorMapping} />

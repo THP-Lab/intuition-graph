@@ -1,5 +1,5 @@
-import React, { useEffect, useRef } from 'react';
-import ForceGraphVR from '3d-force-graph-vr';
+import React, { useEffect, useRef } from "react";
+import ForceGraphVR from "3d-force-graph-vr";
 
 const GraphVR = ({ graphData, onNodeClick }) => {
   const graphRef = useRef();
@@ -9,32 +9,23 @@ const GraphVR = ({ graphData, onNodeClick }) => {
       // Initialize VR Graph
       const graph = ForceGraphVR()(graphRef.current);
 
-      // Check and apply default coordinates if missing
-      const updatedNodes = graphData.nodes.map((node) => ({
-        ...node,
-        x: node.x ?? Math.random() * 100,
-        y: node.y ?? Math.random() * 100,
-        z: node.z ?? Math.random() * 100,
-      }));
-      const updatedGraphData = { ...graphData, nodes: updatedNodes };
+      // Pass graph data directly without assigning random coordinates
+      graph.graphData(graphData);
 
-      // Set graph data
-      graph.graphData(updatedGraphData);
-
-      // Attach click handler
+      // Attach click handler if provided
       if (onNodeClick) {
         graph.onNodeClick(onNodeClick);
       }
 
       // Debugging
-      console.log("Graph data loaded for VR:", updatedGraphData);
+      console.log("Graph data loaded for VR:", graphData);
     }
   }, [graphData, onNodeClick]);
 
   return (
     <div
       ref={graphRef}
-      style={{ width: '100vw', height: '100vh', overflow: 'hidden' }}
+      style={{ width: "100vw", height: "100vh", overflow: "hidden" }}
     />
   );
 };
