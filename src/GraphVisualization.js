@@ -1,24 +1,19 @@
 import React, { useEffect, useState, useCallback, useRef } from "react";
-import {
-  ForceGraph2D,
-  ForceGraph3D,
-  ForceGraphVR,
-} from "react-force-graph";
+import { ForceGraph2D, ForceGraph3D } from "react-force-graph";
 import * as d3 from "d3";
 import { fetchTriples } from "./api";
 import { transformToGraphData } from "./graphData";
 import SpriteText from "three-spritetext";
-import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 import GraphLegend from "./GraphLegend";
+import GraphVR from "./GraphVR";
 
 const GraphVisualization = () => {
   const [graphData, setGraphData] = useState({ nodes: [], links: [] });
   const [isInitialLoad, setIsInitialLoad] = useState(true);
-  const [viewMode, setViewMode] = useState("2D"); // Default to 2D view
-  const [isSceneReady, setIsSceneReady] = useState(false); // Define the state for VR scene readiness
+  const [viewMode, setViewMode] = useState("2D");
   const fgRef = useRef();
-  const controlsRef = useRef(); // Reference for OrbitControls
 
+  // Fetch and transform graph data
   useEffect(() => {
     const loadData = async () => {
       try {
@@ -29,47 +24,22 @@ const GraphVisualization = () => {
         console.error("Error loading graph data:", error);
       }
     };
-
     loadData();
   }, []);
 
-  const colorMapping = {
-    subject: "#4361EE",
-    predicate: "#FF9800",
-    object: "#9D4EDD",
-  };
-
-  useEffect(() => {
-    if (viewMode === "VR" && fgRef.current) {
-      const { camera, renderer } = fgRef.current;
-
-      if (!controlsRef.current) {
-        controlsRef.current = new OrbitControls(camera, renderer.domElement);
-        controlsRef.current.enableDamping = true;
-        controlsRef.current.dampingFactor = 0.25;
-        controlsRef.current.screenSpacePanning = false;
-        controlsRef.current.maxDistance = 100;
-        controlsRef.current.minDistance = 10;
-      }
-
-      controlsRef.current.update();
-
-      return () => {
-        if (controlsRef.current) {
-          controlsRef.current.dispose();
-        }
-      };
-    }
-  }, [viewMode]);
-
+  // Handle 3D node clicks
   const handleNodeClick = useCallback(
     (node) => {
-      if (viewMode === "3D") {
+      if (viewMode === "3D" && fgRef.current) {
         const distance = 40;
-        const distRatio = 1 + distance / Math.hypot(node.x, node.y, node.z);
-
+        const distRatio =
+          1 + distance / Math.hypot(node.x || 1, node.y || 1, node.z || 1); // Fallback to avoid NaN
         fgRef.current.cameraPosition(
-          { x: node.x * distRatio, y: node.y * distRatio, z: node.z * distRatio },
+          {
+            x: node.x * distRatio,
+            y: node.y * distRatio,
+            z: node.z * distRatio,
+          },
           node,
           500
         );
@@ -78,6 +48,7 @@ const GraphVisualization = () => {
     [viewMode]
   );
 
+  // Fit graph to view after initial render
   const handleEngineStop = useCallback(() => {
     if (isInitialLoad && fgRef.current) {
       fgRef.current.zoomToFit(400, 100);
@@ -85,30 +56,30 @@ const GraphVisualization = () => {
     }
   }, [isInitialLoad]);
 
+  // Update graph size on window resize
   useEffect(() => {
-    if (viewMode === "2D" && fgRef.current) {
-      const canvas = fgRef.current.canvas;
-      const context = d3.select(canvas);
+    const handleResize = () => {
+      if (fgRef.current) {
+        fgRef.current.width = window.innerWidth;
+        fgRef.current.height = window.innerHeight;
+      }
+    };
+    window.addEventListener("resize", handleResize);
+    return () => {
+      window.removeEventListener("resize", handleResize);
+    };
+  }, []);
 
-      const zoomHandler = d3
-        .zoom()
-        .scaleExtent([0.5, 5])
-        .on("zoom", (event) => {
-          const transform = event.transform;
-          context
-            .attr("transform", `translate(${transform.x},${transform.y}) scale(${transform.k})`);
-        });
-
-      context.call(zoomHandler);
-
-      return () => {
-        context.on(".zoom", null); // Cleanup zoom listener
-      };
-    }
-  }, [viewMode]);
+  // Color mapping for graph legend
+  const colorMapping = {
+    subject: "#4361EE",
+    predicate: "#FF9800",
+    object: "#9D4EDD",
+  };
 
   return (
     <div style={{ width: "100%", height: "100vh", position: "relative" }}>
+      {/* View mode selector */}
       <div
         style={{
           position: "absolute",
@@ -124,7 +95,7 @@ const GraphVisualization = () => {
           borderRadius: "4px",
         }}
       >
-        <label htmlFor="viewMode" style={{ fontSize: "14px", marginRight: "5px" }}>
+        <label htmlFor="viewMode" style={{ fontSize: "14px" }}>
           View Mode:
         </label>
         <select
@@ -145,63 +116,57 @@ const GraphVisualization = () => {
         </select>
       </div>
 
-      {viewMode === "3D" && (
-        <ForceGraph3D
-          ref={fgRef}
-          graphData={graphData}
-          nodeLabel="label"
-          onNodeClick={handleNodeClick}
-          linkColor={() => "#666"}
-          linkDirectionalParticles={2}
-          linkDirectionalParticleSpeed={(d) => 0.005}
-          nodeAutoColorBy="group"
-          nodeThreeObject={(node) => {
-            const sprite = new SpriteText(node.label);
-            sprite.color = node.color;
-            sprite.textHeight = 2;
-            return sprite;
-          }}
-          onEngineStop={handleEngineStop}
-          width={window.innerWidth}
-          height={window.innerHeight}
-        />
-      )}
-
+      {/* Graph rendering based on view mode */}
       {viewMode === "2D" && (
         <ForceGraph2D
-          ref={fgRef}
+          ref={(el) => (fgRef.current = el)}
           graphData={graphData}
           nodeCanvasObject={(node, ctx, globalScale) => {
-            const label = node.label;
+            const label = node.label || "";
             const fontSize = 12 / globalScale;
             ctx.font = `${fontSize}px Sans-Serif`;
-            ctx.fillStyle = node.color;
+            ctx.fillStyle = node.color || "#000";
             ctx.textAlign = "center";
             ctx.textBaseline = "middle";
             ctx.fillText(label, node.x, node.y);
           }}
+          linkColor={() => "#666"}
+          linkDirectionalParticles={2}
+          linkDirectionalParticleSpeed={0.02}
+          nodeAutoColorBy="group"
+          onEngineStop={handleEngineStop}
+        />
+      )}
+
+      {viewMode === "3D" && (
+        <ForceGraph3D
+          ref={(el) => (fgRef.current = el)}
+          graphData={graphData}
+          nodeLabel="label"
           onNodeClick={handleNodeClick}
           linkColor={() => "#666"}
           linkDirectionalParticles={2}
-          linkDirectionalParticleSpeed={(d) => 0.02}
+          linkDirectionalParticleSpeed={0.005}
           nodeAutoColorBy="group"
+          nodeThreeObject={(node) => {
+            const sprite = new SpriteText(node.label || "");
+            sprite.color = node.color || "#000";
+            sprite.textHeight = 2;
+            return sprite;
+          }}
           onEngineStop={handleEngineStop}
-          width={window.innerWidth}
-          height={window.innerHeight}
         />
       )}
 
       {viewMode === "VR" && (
-        <ForceGraphVR
-          ref={fgRef}
-          graphData={graphData}
-          nodeLabel="label"
-          onNodeClick={handleNodeClick}
-          width={window.innerWidth}
-          height={window.innerHeight}
-          onSceneReady={() => setIsSceneReady(true)} // Example callback
-        />
+        <>
+          {console.log("Graph Data for VR:", graphData)}
+          <GraphVR graphData={graphData} onNodeClick={handleNodeClick} />
+        </>
       )}
+
+
+      {/* Graph legend */}
       <GraphLegend colors={colorMapping} />
     </div>
   );
