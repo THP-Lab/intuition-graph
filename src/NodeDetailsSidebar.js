@@ -14,8 +14,8 @@ const NodeDetailsSidebar = ({ triple, onClose }) => {
 
       const fetchData = async () => {
         try {
-          // Remplacer par la fonction API appropriée pour obtenir plus de détails sur le triple
-          const response = await fetchTriples(triple.id); // Assurez-vous que `fetchTriples` accepte un ID de triple si nécessaire
+          // Appel de l'API avec l'ID du triple
+          const response = await fetchTriples(triple.id); 
           setAdditionalData(response);
         } catch (err) {
           setError("Failed to fetch additional data");

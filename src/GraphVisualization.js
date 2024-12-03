@@ -28,28 +28,28 @@ const GraphVisualization = () => {
     loadData();
   }, []);
 
-  // Handle 3D node clicks
   const handleNodeClick = useCallback(
-    (node) => {
-      if (viewMode === "3D" && fgRef.current) {
-        const distance = 40;
-        const distRatio =
-          1 + distance / Math.hypot(node.x || 1, node.y || 1, node.z || 1); // Fallback to avoid NaN
-        fgRef.current.cameraPosition(
-          {
-            x: node.x * distRatio,
-            y: node.y * distRatio,
-            z: node.z * distRatio,
-          },
-          node,
-          500
-        );
-      }
-      // Mettre à jour l'état du triple sélectionné
-      setSelectedTriple(node); // Ici, on envoie le triple (node) sélectionné
-    },
-    [viewMode]
-  );
+  async (node) => {
+    if (viewMode === "3D" && fgRef.current) {
+      const distance = 40;
+      const distRatio = 1 + distance / Math.hypot(node.x || 1, node.y || 1, node.z || 1); // Fallback pour éviter NaN
+      fgRef.current.cameraPosition(
+        {
+          x: node.x * distRatio,
+          y: node.y * distRatio,
+          z: node.z * distRatio,
+        },
+        node,
+        500
+      );
+    }
+
+    // Mettre à jour l'état du triple sélectionné
+    setSelectedTriple(node); // On passe le triple (node) sélectionné
+  },
+  [viewMode]
+);
+
 
   // Fit graph to view after initial render
   const handleEngineStop = useCallback(() => {
