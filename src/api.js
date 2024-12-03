@@ -11,7 +11,7 @@ const ENDPOINTS = {
 // Select which endpoint to use
 // Change this to switch endpoints:
 //'railsMockApi' | 'baseSepolia' | 'base'
-const data_endpoint = "railsMockApi";
+const data_endpoint = "baseSepolia";
 
 // Create GraphQL client with selected endpoint
 const client = new GraphQLClient(ENDPOINTS[data_endpoint]);
@@ -70,3 +70,5 @@ export const fetchTriples = async () => {
 
 // Export current endpoint for potential use in other components
 export const getCurrentEndpoint = () => ENDPOINTS[data_endpoint];
+
+

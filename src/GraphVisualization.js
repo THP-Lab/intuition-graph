@@ -1,16 +1,17 @@
 import React, { useEffect, useState, useCallback, useRef } from "react";
 import { ForceGraph2D, ForceGraph3D } from "react-force-graph";
-import * as d3 from "d3";
 import { fetchTriples } from "./api";
 import { transformToGraphData } from "./graphData";
 import SpriteText from "three-spritetext";
 import GraphLegend from "./GraphLegend";
 import GraphVR from "./GraphVR";
+import NodeDetailsSidebar from "./NodeDetailsSidebar"; // Import du composant Sidebar
 
 const GraphVisualization = () => {
   const [graphData, setGraphData] = useState({ nodes: [], links: [] });
   const [isInitialLoad, setIsInitialLoad] = useState(true);
   const [viewMode, setViewMode] = useState("2D");
+  const [selectedTriple, setSelectedTriple] = useState(null); // State pour le triple sélectionné
   const fgRef = useRef();
 
   // Fetch and transform graph data
@@ -44,6 +45,8 @@ const GraphVisualization = () => {
           500
         );
       }
+      // Mettre à jour l'état du triple sélectionné
+      setSelectedTriple(node); // Ici, on envoie le triple (node) sélectionné
     },
     [viewMode]
   );
@@ -135,6 +138,7 @@ const GraphVisualization = () => {
           linkDirectionalParticleSpeed={0.02}
           nodeAutoColorBy="group"
           onEngineStop={handleEngineStop}
+          onNodeClick={handleNodeClick} // Ajout de l'événement de clic sur le nœud
         />
       )}
 
@@ -143,7 +147,7 @@ const GraphVisualization = () => {
           ref={(el) => (fgRef.current = el)}
           graphData={graphData}
           nodeLabel="label"
-          onNodeClick={handleNodeClick}
+          onNodeClick={handleNodeClick} // Ajout de l'événement de clic sur le nœud
           linkColor={() => "#666"}
           linkDirectionalParticles={2}
           linkDirectionalParticleSpeed={0.005}
@@ -160,14 +164,17 @@ const GraphVisualization = () => {
 
       {viewMode === "VR" && (
         <>
-          {console.log("Graph Data for VR:", graphData)}
           <GraphVR graphData={graphData} onNodeClick={handleNodeClick} />
         </>
       )}
 
-
       {/* Graph legend */}
       <GraphLegend colors={colorMapping} />
+
+      {/* Node Details Sidebar */}
+      {selectedTriple && (
+        <NodeDetailsSidebar triple={selectedTriple} onClose={() => setSelectedTriple(null)} />
+      )}
     </div>
   );
 };
