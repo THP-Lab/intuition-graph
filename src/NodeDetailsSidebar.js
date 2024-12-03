@@ -14,9 +14,19 @@ const NodeDetailsSidebar = ({ triple, onClose }) => {
 
       const fetchData = async () => {
         try {
-          // Appel de l'API avec l'ID du triple
-          const response = await fetchTriples(triple.id); 
-          setAdditionalData(response);
+          // Appel à fetchTriples avec l'ID du triple sélectionné (en supposant que `fetchTriples` renvoie un tableau)
+          const response = await fetchTriples();
+
+          // Filtrage des données pour ne garder que celles qui correspondent à l'ID du triple sélectionné
+          const filteredData = response.filter(item => 
+            item.id === triple.id || 
+            item.subject.id === triple.id || 
+            item.predicate.id === triple.id || 
+            item.object.id === triple.id
+          );
+          
+          // Enregistrer les données filtrées
+          setAdditionalData(filteredData);
         } catch (err) {
           setError("Failed to fetch additional data");
         } finally {
@@ -55,12 +65,14 @@ const NodeDetailsSidebar = ({ triple, onClose }) => {
       {/* Affichage des données supplémentaires, si elles existent */}
       {loading && <p>Loading additional data...</p>}
       {error && <p>{error}</p>}
-      {additionalData && (
+      {additionalData && additionalData.length > 0 ? (
         <div>
           <h4>Informations:</h4>
           {/* Adapter l'affichage des données supplémentaires selon ce qui est retourné */}
           <pre>{JSON.stringify(additionalData, null, 2)}</pre>
         </div>
+      ) : (
+        <p>No additional data found for this atom.</p>
       )}
 
       <button
