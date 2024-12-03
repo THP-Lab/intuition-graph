@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback, useRef } from "react";
 import { ForceGraph2D, ForceGraph3D } from "react-force-graph";
 import SpriteText from "three-spritetext";
-import { fetchTriples } from "./api";
+import { fetchTriples, fetchTriplesForNode } from "./api";
 import { transformToGraphData } from "./graphData";
 import { NODE_COLORS } from "./nodeColors";
 import GraphLegend from "./GraphLegend";
@@ -11,6 +11,8 @@ import LoadingAnimation from "./LoadingAnimation";
 
 const GraphVisualization = ({ endpoint }) => {
   const [graphData, setGraphData] = useState({ nodes: [], links: [] });
+  const [initialGraphData, setInitialGraphData] = useState(null);
+  const [previousGraphData, setPreviousGraphData] = useState(null);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
   const [viewMode, setViewMode] = useState("2D");
   const [selectedTriple, setSelectedTriple] = useState(null);
@@ -97,6 +99,17 @@ const GraphVisualization = ({ endpoint }) => {
           node,
           500
         );
+
+        // Récupérer les triplets de la base de données pour le nœud sélectionné
+        try {
+          const filteredTriples = await fetchTriplesForNode(node.id);
+          console.log("Triples filtrés :", filteredTriples);
+
+          const newGraphData = transformToGraphData(filteredTriples);
+          setGraphData(newGraphData);
+        } catch (error) {
+          console.error("Erreur lors de la récupération des triplets :", error);
+        }
       }
 
       setSelectedTriple(node);
@@ -104,6 +117,7 @@ const GraphVisualization = ({ endpoint }) => {
     [viewMode]
   );
 
+  // Fit graph to view after initial render
   const handleEngineStop = useCallback(() => {
     if (isInitialLoad && fgRef.current) {
       setIsInitialLoad(false);
@@ -113,6 +127,9 @@ const GraphVisualization = ({ endpoint }) => {
   return (
     <div>
       {isLoading && <LoadingAnimation />}
+      <button onClick={resetGraph} style={{ position: "absolute", top: "10px", right: "10px", zIndex: 10 }}>
+        Revenir au graphique initial
+      </button>
 
       {/* Options en haut à gauche */}
       <div
