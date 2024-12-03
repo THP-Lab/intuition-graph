@@ -6,24 +6,18 @@ const GraphVR = ({ graphData, onNodeClick }) => {
 
   useEffect(() => {
     if (graphRef.current) {
-      // Initialize VR Graph
       const graph = ForceGraphVR()(graphRef.current);
 
-      // Set graph data
       graph.graphData(graphData);
 
-      // Add labels to nodes
       graph
-        .nodeLabel((node) => node.name || node.id) // Use the `name` property or fallback to `id`
-        .nodeAutoColorBy("group"); // Optional: Automatically color nodes by a property
+        .nodeLabel((node) => node.name || node.id)
+        .nodeAutoColorBy("group");
 
       // Attach click handler if provided
       if (onNodeClick) {
         graph.onNodeClick(onNodeClick);
       }
-
-      // Debugging
-      console.log("Graph data loaded with labels:", graphData);
     }
   }, [graphData, onNodeClick]);
 

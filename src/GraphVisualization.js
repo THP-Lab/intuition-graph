@@ -1,9 +1,8 @@
 import React, { useEffect, useState, useCallback, useRef } from "react";
 import { ForceGraph2D, ForceGraph3D } from "react-force-graph";
-import * as d3 from "d3";
+import SpriteText from "three-spritetext";
 import { fetchTriples } from "./api";
 import { transformToGraphData } from "./graphData";
-import SpriteText from "three-spritetext";
 import GraphLegend from "./GraphLegend";
 import GraphVR from "./GraphVR";
 
@@ -33,7 +32,7 @@ const GraphVisualization = () => {
       if (viewMode === "3D" && fgRef.current) {
         const distance = 40;
         const distRatio =
-          1 + distance / Math.hypot(node.x || 1, node.y || 1, node.z || 1); // Fallback to avoid NaN
+          1 + distance / Math.hypot(node.x || 1, node.y || 1, node.z || 1);
         fgRef.current.cameraPosition(
           {
             x: node.x * distRatio,
@@ -142,6 +141,7 @@ const GraphVisualization = () => {
         <ForceGraph3D
           ref={(el) => (fgRef.current = el)}
           graphData={graphData}
+          controlType="fly"
           nodeLabel="label"
           onNodeClick={handleNodeClick}
           linkColor={() => "#666"}
@@ -159,9 +159,7 @@ const GraphVisualization = () => {
       )}
 
       {viewMode === "VR" && (
-        <>
-          <GraphVR graphData={graphData} onNodeClick={handleNodeClick} />
-        </>
+        <GraphVR graphData={graphData} onNodeClick={handleNodeClick} />
       )}
 
       {/* Graph legend */}
