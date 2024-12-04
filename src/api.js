@@ -87,7 +87,6 @@ export const fetchTriples = async (endpoint = "base") => {
   }
 };
 
-<<<<<<< HEAD
 // Fetch Atom Details
 export const fetchAtomDetails = async (atomId, endpoint = "base") => {
   const client = createClient(endpoint);
@@ -138,11 +137,10 @@ export const fetchAtomDetails = async (atomId, endpoint = "base") => {
     throw error;
   }
 };
-=======
-// Export current endpoint for potential use in other components
-export const getCurrentEndpoint = () => ENDPOINTS[data_endpoint];
 
-export const fetchTriplesForNode = async (nodeId) => {
+export const fetchTriplesForNode = async (nodeId, endpoint) => {
+  const client = createClient(endpoint);
+
   const query = gql`
     query {
       triples(filter: { subject: "${nodeId}" }) {
@@ -182,23 +180,24 @@ export const fetchTriplesForNode = async (nodeId) => {
   console.log("Données récupérées :", data); // Vérifiez la structure ici
 
   // Combinez les résultats des deux requêtes
-  const subjectTriples = data.triples.filter(triple => triple.subject.id === nodeId);
-  const objectTriples = data.triples.filter(triple => triple.object.id === nodeId);
+  const subjectTriples = data.triples.filter(
+    (triple) => triple.subject.id === nodeId
+  );
+  const objectTriples = data.triples.filter(
+    (triple) => triple.object.id === nodeId
+  );
 
   console.log("Triples par sujet :", subjectTriples); // Log des triples par sujet
   console.log("Triples par objet :", objectTriples); // Log des triples par objet
 
   // Combinez les résultats des deux requêtes
-  const combinedTriples = [
-    ...subjectTriples,
-    ...objectTriples,
-  ];
+  const combinedTriples = [...subjectTriples, ...objectTriples];
 
   // Éliminez les doublons
-  const uniqueTriples = Array.from(new Set(combinedTriples.map(triple => triple.id)))
-    .map(id => combinedTriples.find(triple => triple.id === id));
+  const uniqueTriples = Array.from(
+    new Set(combinedTriples.map((triple) => triple.id))
+  ).map((id) => combinedTriples.find((triple) => triple.id === id));
 
   console.log("Triples récupérés pour le nœud :", uniqueTriples); // Ajoutez ce log
   return uniqueTriples; // Retourne les triplets filtrés
 };
->>>>>>> 33a6276 (Graphic display of selected item)
