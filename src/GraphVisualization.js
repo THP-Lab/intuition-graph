@@ -8,6 +8,7 @@ import GraphLegend from "./GraphLegend";
 import GraphVR from "./GraphVR";
 import NodeDetailsSidebar from "./NodeDetailsSidebar";
 import LoadingAnimation from "./LoadingAnimation";
+import * as d3 from 'd3';
 
 const GraphVisualization = ({ endpoint }) => {
   const [graphData, setGraphData] = useState({ nodes: [], links: [] });
@@ -87,26 +88,64 @@ const GraphVisualization = ({ endpoint }) => {
   const handleNodeClick = useCallback(
     async (node) => {
       if (viewMode === "3D" && fgRef.current) {
-        const distance = 40;
-        const distRatio =
-          1 + distance / Math.hypot(node.x || 1, node.y || 1, node.z || 1);
-        fgRef.current.cameraPosition(
-          {
-            x: node.x * distRatio,
-            y: node.y * distRatio,
-            z: node.z * distRatio,
-          },
-          node,
-          500
-        );
-
-        // Récupérer les triplets de la base de données pour le nœud sélectionné
         try {
-          const filteredTriples = await fetchTriplesForNode(node.id);
-          console.log("Triples filtrés :", filteredTriples);
+          // Sauvegarder la position actuelle du nœud
+          const nodePosition = {
+            x: node.x,
+            y: node.y,
+            z: node.z
+          };
 
+          // Récupérer les nouveaux triplets
+          const filteredTriples = await fetchTriplesForNode(node.id);
           const newGraphData = transformToGraphData(filteredTriples);
+
+          // Assigner la position sauvegardée au nœud correspondant dans le nouveau graphe
+          const targetNode = newGraphData.nodes.find(n => n.id === node.id);
+          if (targetNode) {
+            targetNode.x = nodePosition.x;
+            targetNode.y = nodePosition.y;
+            targetNode.z = nodePosition.z;
+            // Fixer le nœud en place pendant l'initialisation du graphe
+            targetNode.fx = nodePosition.x;
+            targetNode.fy = nodePosition.y;
+            targetNode.fz = nodePosition.z;
+          }
+
           setGraphData(newGraphData);
+
+          // Attendre que le graphe soit stabilisé
+          fgRef.current.d3Force('center', null);
+          await new Promise(resolve => {
+            const handleEngineStop = () => {
+              // Libérer le nœud une fois le graphe stabilisé
+              if (targetNode) {
+                targetNode.fx = undefined;
+                targetNode.fy = undefined;
+                targetNode.fz = undefined;
+              }
+              
+              const distance = 40;
+              const distRatio = 1 + distance / Math.hypot(nodePosition.x, nodePosition.y, nodePosition.z);
+              
+              fgRef.current.cameraPosition(
+                {
+                  x: nodePosition.x * distRatio,
+                  y: nodePosition.y * distRatio,
+                  z: nodePosition.z * distRatio
+                },
+                targetNode,
+                500
+              );
+
+              fgRef.current.d3Force('center', d3.forceCenter());
+              fgRef.current.removeEventListener('engineStop', handleEngineStop);
+              resolve();
+            };
+
+            fgRef.current.addEventListener('engineStop', handleEngineStop);
+          });
+
         } catch (error) {
           console.error("Erreur lors de la récupération des triplets :", error);
         }
