@@ -15,82 +15,66 @@ const client = new GraphQLClient(ENDPOINTS[data_endpoint]);
 
 // Fetch Triples
 export const fetchTriples = async () => {
-  let query, data;
-  switch (data_endpoint) {
-    case "base":
-      query = gql`
-        query {
-          triples(limit: 1000) {
-            items {
-              id
-              subject {
-                label
-                id
-              }
-              predicate {
-                label
-                id
-              }
-              object {
-                label
-                id
-              }
-            }
-          }
-        }
-      `;
-      data = await client.request(query);
-      return data.triples.items;
-    default:
-      query = gql`
-        query {
-          triples(limit: 1000) {
-            id
-            subject {
-              label
-              id
-            }
-            predicate {
-              label
-              id
-            }
-            object {
-              label
-              id
-            }
-          }
-        }
-      `;
-      data = await client.request(query);
-      return data.triples;
-  }
-};
-
-export const fetchAtomDetails = async (atomId) => {
-  debugger
   const query = gql`
-    query ($id: numeric!) {
-      atom(id: $id) {
+    query {
+      triples(limit: 1000) {
         id
-        vault {
-          totalShares
+        subject {
+          label
+          id
+          type
         }
-        data
+        predicate {
+          label
+          id
+          type
+        }
+        object {
+          label
+          id
+          type
+        }
       }
     }
   `;
-  const variables = { id: atomId };
+  try {
+    const data = await client.request(query);
+    return data.triples;
+  } catch (error) {
+    console.error("Error fetching triples:", error);
+    throw error;
+  }
+};
+
+// Fetch Atom Details
+export const fetchAtomDetails = async (atomId) => {
+  const query = gql`
+    query GetAtom($atomId: numeric!) {
+      atom(id: $atomId) {
+        id
+        image
+        label
+        emoji
+        type
+        creatorId
+        vault {
+          totalShares
+        }
+        creator {
+          id
+          label
+          image
+        }
+      }
+    }
+  `;
+  const variables = { atomId };
 
   try {
     const data = await client.request(query, variables);
-    return data.atom; // Retourne directement les détails de l'atome
+    return data.atom;
   } catch (error) {
     console.error("Error fetching atom details:", error);
     throw error;
   }
 };
-
-
-
-// Export current endpoint for potential use in other components
-export const getCurrentEndpoint = () => ENDPOINTS[data_endpoint];

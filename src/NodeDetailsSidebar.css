@@ -1,79 +1,123 @@
-/* NodeDetails.css */
-
 /* Style général de la sidebar */
 .node-details-sidebar {
-    position: fixed;
-    top: 50%;
-    right: 20px;
-    transform: translateY(-50%);
-    background: rgba(0, 0, 0, 0.7);
-    padding: 20px;
-    width: 300px;
-    border-radius: 10px;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.8);
-    z-index: 1000;
-    color: #fff;
-    overflow-y: auto;
-    max-height: 80vh;
-  }
-  
-  /* Titres et sous-titres */
-  .node-details-sidebar h2,
-  .node-details-sidebar h4 {
-    color: #f4f4f4;
-    margin-bottom: 10px;
-  }
-  
-  /* Sections de contenu */
-  .node-details-sidebar p {
-    color: #fff;
-    margin: 5px 0;
-  }
-  
-  /* Contenu défilant */
-  .scrollable-content {
-    margin-top: 20px;
-    background: #222;
-    padding: 10px;
-    border-radius: 5px;
-    overflow-y: auto;
-    max-height: 200px;
-  }
-  
-  /* Style de la prévisualisation des données */
-  pre {
-    color: #0f0;
-    white-space: pre-wrap;
-    word-wrap: break-word;
-  }
-  
-  /* Bouton de fermeture */
-  .node-details-sidebar button {
-    background-color: #333;
-    color: #fff;
-    border: none;
-    padding: 8px 12px;
-    border-radius: 5px;
-    cursor: pointer;
-    margin-top: 10px;
-    width: 100%;
-  }
-  
-  /* Personnalisation de la barre de défilement */
-  ::-webkit-scrollbar {
-    width: 8px;
-  }
-  
-  ::-webkit-scrollbar-thumb {
-    background-color: #555;
-    border-radius: 10px;
-  }
-  
-  ::-webkit-scrollbar-track {
-    background-color: #333;
-  }
-  
-  ::-webkit-scrollbar-thumb:hover {
-    background-color: #888;
-  }
-  
+  position: fixed;
+  top: 50%;
+  right: 20px;
+  transform: translateY(-50%);
+  background: rgba(0, 0, 0, 0.7); /* Noir semi-transparent harmonisé */
+  padding: 20px;
+  width: 350px;
+  border-radius: 10px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.8);
+  z-index: 1000;
+  color: #fff;
+  overflow-y: auto;
+  max-height: 80vh;
+}
+
+/* Titres et sous-titres */
+.node-details-sidebar h2 {
+  color: #f4f4f4;
+  margin-bottom: 15px;
+}
+
+.node-details-sidebar h4 {
+  color: #d3d3d3;
+  margin-top: 20px;
+}
+
+/* Paragraphes */
+.node-details-sidebar p {
+  color: #fff;
+  margin: 5px 0;
+}
+
+/* Sections de contenu défilant */
+.scrollable-content {
+  margin-top: 20px;
+  background: rgba(0, 0, 0, 0.7); /* Noir semi-transparent harmonisé */
+  padding: 10px;
+  border-radius: 5px;
+  overflow-y: auto;
+  max-height: 200px;
+}
+
+/* Listes */
+.node-details-sidebar ul {
+  list-style: none;
+  padding: 0;
+}
+
+.node-details-sidebar ul li {
+  margin-bottom: 10px;
+}
+
+/* Style de la prévisualisation des données */
+pre {
+  color: #0f0;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+/* Bouton de fermeture */
+.node-details-sidebar button {
+  background-color: #444; /* Fond gris contrastant */
+  color: #fff;
+  border: none;
+  padding: 10px 15px;
+  border-radius: 5px;
+  cursor: pointer;
+  margin-top: 20px;
+  width: 100%;
+}
+
+.node-details-sidebar button:hover {
+  background-color: #555; /* Changement de teinte au survol */
+}
+
+/* Personnalisation de la barre de défilement */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: #555;
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background-color: #333;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: #888;
+}
+
+/* Zone défilante pour les "related triples" */
+.related-triples {
+  margin-top: 20px;
+  background: rgba(0, 0, 0, 0.0); /* Noir semi-transparent harmonisé */
+  padding: 20px;
+  border-radius: 5px;
+  overflow-y: auto; /* Permet le défilement vertical */
+  max-height: 200px; /* Hauteur maximale avant d'activer la barre de défilement */
+  color: #fff; /* Texte blanc pour le contraste */
+}
+
+/* Personnalisation de la barre de défilement pour cette section */
+.related-triples::-webkit-scrollbar {
+  width: 8px; /* Largeur de la barre de défilement */
+}
+
+.related-triples::-webkit-scrollbar-thumb {
+  background-color: #555; /* Couleur de la barre de défilement */
+  border-radius: 10px; /* Coins arrondis */
+}
+
+.related-triples::-webkit-scrollbar-track {
+  background-color: #444; /* Fond gris contrastant */
+}
+
+.related-triples::-webkit-scrollbar-thumb:hover {
+  background-color: #888; /* Couleur au survol */
+}
