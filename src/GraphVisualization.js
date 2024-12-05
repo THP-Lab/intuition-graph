@@ -5,16 +5,15 @@ import { transformToGraphData } from "./graphData";
 import SpriteText from "three-spritetext";
 import GraphLegend from "./GraphLegend";
 import GraphVR from "./GraphVR";
-import NodeDetailsSidebar from "./NodeDetailsSidebar"; // Import du composant Sidebar
+import NodeDetailsSidebar from "./NodeDetailsSidebar";
 
 const GraphVisualization = () => {
   const [graphData, setGraphData] = useState({ nodes: [], links: [] });
   const [isInitialLoad, setIsInitialLoad] = useState(true);
   const [viewMode, setViewMode] = useState("2D");
-  const [selectedTriple, setSelectedTriple] = useState(null); // State pour le triple sélectionné
+  const [selectedTriple, setSelectedTriple] = useState(null);
   const fgRef = useRef();
 
-  // Fetch and transform graph data
   useEffect(() => {
     const loadData = async () => {
       try {
@@ -29,29 +28,27 @@ const GraphVisualization = () => {
   }, []);
 
   const handleNodeClick = useCallback(
-  async (node) => {
-    if (viewMode === "3D" && fgRef.current) {
-      const distance = 40;
-      const distRatio = 1 + distance / Math.hypot(node.x || 1, node.y || 1, node.z || 1); // Fallback pour éviter NaN
-      fgRef.current.cameraPosition(
-        {
-          x: node.x * distRatio,
-          y: node.y * distRatio,
-          z: node.z * distRatio,
-        },
-        node,
-        500
-      );
-    }
+    async (node) => {
+      if (viewMode === "3D" && fgRef.current) {
+        const distance = 40;
+        const distRatio =
+          1 + distance / Math.hypot(node.x || 1, node.y || 1, node.z || 1);
+        fgRef.current.cameraPosition(
+          {
+            x: node.x * distRatio,
+            y: node.y * distRatio,
+            z: node.z * distRatio,
+          },
+          node,
+          500
+        );
+      }
 
-    // Mettre à jour l'état du triple sélectionné
-    setSelectedTriple(node); // On passe le triple (node) sélectionné
-  },
-  [viewMode]
-);
+      setSelectedTriple(node);
+    },
+    [viewMode]
+  );
 
-
-  // Fit graph to view after initial render
   const handleEngineStop = useCallback(() => {
     if (isInitialLoad && fgRef.current) {
       fgRef.current.zoomToFit(400, 100);
@@ -59,21 +56,6 @@ const GraphVisualization = () => {
     }
   }, [isInitialLoad]);
 
-  // Update graph size on window resize
-  useEffect(() => {
-    const handleResize = () => {
-      if (fgRef.current) {
-        fgRef.current.width = window.innerWidth;
-        fgRef.current.height = window.innerHeight;
-      }
-    };
-    window.addEventListener("resize", handleResize);
-    return () => {
-      window.removeEventListener("resize", handleResize);
-    };
-  }, []);
-
-  // Color mapping for graph legend
   const colorMapping = {
     subject: "#4361EE",
     predicate: "#FF9800",
@@ -82,7 +64,7 @@ const GraphVisualization = () => {
 
   return (
     <div style={{ width: "100%", height: "100vh", position: "relative" }}>
-      {/* View mode selector */}
+      {/* Options en haut à gauche */}
       <div
         style={{
           position: "absolute",
@@ -119,7 +101,7 @@ const GraphVisualization = () => {
         </select>
       </div>
 
-      {/* Graph rendering based on view mode */}
+      {/* Graphique 2D */}
       {viewMode === "2D" && (
         <ForceGraph2D
           ref={(el) => (fgRef.current = el)}
@@ -136,45 +118,54 @@ const GraphVisualization = () => {
           linkColor={() => "#666"}
           linkDirectionalParticles={2}
           linkDirectionalParticleSpeed={0.02}
-          nodeAutoColorBy="group"
+          nodeAutoColorBy="type"
+          onNodeClick={handleNodeClick}
           onEngineStop={handleEngineStop}
-          onNodeClick={handleNodeClick} // Ajout de l'événement de clic sur le nœud
         />
       )}
 
+      {/* Graphique 3D */}
       {viewMode === "3D" && (
         <ForceGraph3D
           ref={(el) => (fgRef.current = el)}
           graphData={graphData}
-          nodeLabel="label"
-          onNodeClick={handleNodeClick} // Ajout de l'événement de clic sur le nœud
-          linkColor={() => "#666"}
-          linkDirectionalParticles={2}
-          linkDirectionalParticleSpeed={0.005}
-          nodeAutoColorBy="group"
           nodeThreeObject={(node) => {
             const sprite = new SpriteText(node.label || "");
-            sprite.color = node.color || "#000";
-            sprite.textHeight = 2;
+            sprite.color = colorMapping[node.type] || "#ccc";
+            sprite.textHeight = 8;
             return sprite;
           }}
+          linkColor={() => "#888"}
+          onNodeClick={handleNodeClick}
           onEngineStop={handleEngineStop}
         />
       )}
 
+      {/* Mode VR */}
       {viewMode === "VR" && (
-        <>
-          <GraphVR graphData={graphData} onNodeClick={handleNodeClick} />
-        </>
+        <GraphVR graphData={graphData} onNodeClick={handleNodeClick} />
       )}
+
+      
+      {/* Légende des couleurs */}
+      <GraphLegend
+        colorMapping={colorMapping}
+        style={{
+          position: "absolute",
+          bottom: "10px",
+          right: "10px",
+          zIndex: 10,
+        }}
+      />
 
       {/* Graph legend */}
       <GraphLegend colors={colorMapping} />
 
-      {/* Node Details Sidebar */}
-      {selectedTriple && (
-        <NodeDetailsSidebar triple={selectedTriple} onClose={() => setSelectedTriple(null)} />
-      )}
+      {/* Barre latérale de détails */}
+      <NodeDetailsSidebar
+        triple={selectedTriple}
+        onClose={() => setSelectedTriple(null)}
+      />
     </div>
   );
 };

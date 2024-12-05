@@ -1,6 +1,6 @@
 import React from "react";
 
-const GraphLegend = ({ colors }) => {
+const GraphLegend = ({ colors = {} }) => {
   return (
     <div
       style={{

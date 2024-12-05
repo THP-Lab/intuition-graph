@@ -1,4 +1,3 @@
-// src/api.js
 import { gql, GraphQLClient } from "graphql-request";
 
 // Hardcoded Endpoints
@@ -9,13 +8,12 @@ const ENDPOINTS = {
 };
 
 // Select which endpoint to use
-// Change this to switch endpoints:
-//'railsMockApi' | 'baseSepolia' | 'base'
-const data_endpoint = "railsMockApi";
+const data_endpoint = "baseSepolia";
 
 // Create GraphQL client with selected endpoint
 const client = new GraphQLClient(ENDPOINTS[data_endpoint]);
 
+// Fetch Triples
 export const fetchTriples = async () => {
   let query, data;
   switch (data_endpoint) {
@@ -68,8 +66,31 @@ export const fetchTriples = async () => {
   }
 };
 
+export const fetchAtomDetails = async (atomId) => {
+  debugger
+  const query = gql`
+    query ($id: numeric!) {
+      atom(id: $id) {
+        id
+        vault {
+          totalShares
+        }
+        data
+      }
+    }
+  `;
+  const variables = { id: atomId };
+
+  try {
+    const data = await client.request(query, variables);
+    return data.atom; // Retourne directement les détails de l'atome
+  } catch (error) {
+    console.error("Error fetching atom details:", error);
+    throw error;
+  }
+};
+
+
 
 // Export current endpoint for potential use in other components
 export const getCurrentEndpoint = () => ENDPOINTS[data_endpoint];
-
-
