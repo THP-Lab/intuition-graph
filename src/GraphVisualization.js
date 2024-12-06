@@ -1,8 +1,8 @@
 import React, { useEffect, useState, useCallback, useRef } from "react";
 import { ForceGraph2D, ForceGraph3D } from "react-force-graph";
+import SpriteText from "three-spritetext";
 import { fetchTriples } from "./api";
 import { transformToGraphData } from "./graphData";
-import SpriteText from "three-spritetext";
 import GraphLegend from "./GraphLegend";
 import GraphVR from "./GraphVR";
 import NodeDetailsSidebar from "./NodeDetailsSidebar";
@@ -124,39 +124,29 @@ const GraphVisualization = () => {
         />
       )}
 
-      {/* Graphique 3D */}
-      {viewMode === "3D" && (
-        <ForceGraph3D
-          ref={(el) => (fgRef.current = el)}
-          graphData={graphData}
-          nodeThreeObject={(node) => {
-            const sprite = new SpriteText(node.label || "");
-            sprite.color = colorMapping[node.type] || "#ccc";
-            sprite.textHeight = 8;
-            return sprite;
-          }}
-          linkColor={() => "#888"}
-          onNodeClick={handleNodeClick}
-          onEngineStop={handleEngineStop}
-        />
-      )}
+      <ForceGraph3D
+        ref={(el) => (fgRef.current = el)}
+        graphData={graphData}
+        controlType="fly"
+        nodeLabel="label"
+        onNodeClick={handleNodeClick}
+        linkColor={() => "#666"}
+        linkDirectionalParticles={2}
+        linkDirectionalParticleSpeed={0.005}
+        nodeAutoColorBy="type"
+        nodeThreeObject={(node) => {
+          const sprite = new SpriteText(node.label || "");
+          sprite.color = node.color || colorMapping[node.type] || "#666";
+          sprite.textHeight = 2;
+          return sprite;
+        }}
+        onEngineStop={handleEngineStop}
+      />
 
       {/* Mode VR */}
       {viewMode === "VR" && (
         <GraphVR graphData={graphData} onNodeClick={handleNodeClick} />
       )}
-
-      
-      {/* Légende des couleurs */}
-      <GraphLegend
-        colorMapping={colorMapping}
-        style={{
-          position: "absolute",
-          bottom: "10px",
-          right: "10px",
-          zIndex: 10,
-        }}
-      />
 
       {/* Graph legend */}
       <GraphLegend colors={colorMapping} />
