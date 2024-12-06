@@ -17,25 +17,29 @@ const client = new GraphQLClient(ENDPOINTS[data_endpoint]);
 export const fetchTriples = async () => {
   const query = gql`
     query {
-      triples(limit: 1000) {
-        id
-        subject {
-          label
-          id
-          type
-        }
-        predicate {
-          label
-          id
-          type
-        }
-        object {
-          label
-          id
-          type
-        }
-      }
+  triples(limit: 1000) {
+    id
+    subject {
+      label
+      id
+      type
+      creatorId
     }
+    predicate {
+      label
+      id
+      type
+      creatorId
+    }
+    object {
+      label
+      id
+      type
+      creatorId
+    }
+  }
+}
+
   `;
   try {
     const data = await client.request(query);
@@ -59,11 +63,6 @@ export const fetchAtomDetails = async (atomId) => {
         creatorId
         vault {
           totalShares
-        }
-        creator {
-          id
-          label
-          image
         }
       }
     }

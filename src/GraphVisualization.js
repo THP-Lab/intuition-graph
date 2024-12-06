@@ -12,20 +12,65 @@ const GraphVisualization = () => {
   const [isInitialLoad, setIsInitialLoad] = useState(true);
   const [viewMode, setViewMode] = useState("2D");
   const [selectedTriple, setSelectedTriple] = useState(null);
+  const [showCreators, setShowCreators] = useState(false);
   const fgRef = useRef();
 
+  // Charger les données
   useEffect(() => {
     const loadData = async () => {
       try {
         const triples = await fetchTriples();
-        const data = transformToGraphData(triples);
-        setGraphData(data);
+        let baseGraphData = transformToGraphData(triples);
+
+        // Ajouter les créateurs si le toggle est actif
+        if (showCreators) {
+          baseGraphData = enhanceGraphDataWithCreators(baseGraphData, triples);
+        }
+
+        setGraphData(baseGraphData);
       } catch (error) {
         console.error("Error loading graph data:", error);
       }
     };
+
     loadData();
-  }, []);
+  }, [showCreators]); // Recharger les données si le toggle `showCreators` change
+
+  // Fonction pour ajouter les créateurs au graphe
+  const enhanceGraphDataWithCreators = (graphData, triples) => {
+    const creatorNodes = [];
+    const creatorLinks = [];
+
+    triples.forEach((triple) => {
+      const entities = [triple.subject, triple.predicate, triple.object];
+
+      entities.forEach((entity) => {
+        if (entity.creatorId) {
+          // Ajouter un nœud pour le créateur
+          if (!creatorNodes.find((node) => node.id === `creator-${entity.creatorId}`)) {
+            creatorNodes.push({
+              id: `creator-${entity.creatorId}`,
+              label: `Creator ${entity.creatorId}`,
+              type: "creator",
+              color: "green",
+            });
+          }
+
+          // Ajouter un lien entre l'entité et son créateur
+          creatorLinks.push({
+            source: `creator-${entity.creatorId}`,
+            target: entity.id,
+            label: "created",
+          });
+        }
+      });
+    });
+
+    return {
+      nodes: [...graphData.nodes, ...creatorNodes],
+      links: [...graphData.links, ...creatorLinks],
+    };
+  };
 
   const handleNodeClick = useCallback(
     async (node) => {
@@ -80,6 +125,7 @@ const GraphVisualization = () => {
           borderRadius: "4px",
         }}
       >
+        {/* Toggle pour le mode de vue */}
         <label htmlFor="viewMode" style={{ fontSize: "14px" }}>
           View Mode:
         </label>
@@ -99,6 +145,17 @@ const GraphVisualization = () => {
           <option value="3D">3D</option>
           <option value="VR">VR</option>
         </select>
+
+        {/* Toggle pour afficher les créateurs */}
+        <label style={{ fontSize: "14px", marginLeft: "10px" }}>
+          Show Creators
+          <input
+            type="checkbox"
+            checked={showCreators}
+            onChange={(e) => setShowCreators(e.target.checked)}
+            style={{ marginLeft: "8px" }}
+          />
+        </label>
       </div>
 
       {/* Graphique 2D */}
@@ -124,6 +181,7 @@ const GraphVisualization = () => {
         />
       )}
 
+      {/* Graphique 3D */}
       <ForceGraph3D
         ref={(el) => (fgRef.current = el)}
         graphData={graphData}
