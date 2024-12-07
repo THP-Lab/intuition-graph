@@ -11,7 +11,7 @@ const ENDPOINTS = {
 // Select which endpoint to use
 // Change this to switch endpoints:
 //'railsMockApi' | 'baseSepolia' | 'base'
-const data_endpoint = "railsMockApi";
+const data_endpoint = "base";
 
 // Create GraphQL client with selected endpoint
 const client = new GraphQLClient(ENDPOINTS[data_endpoint]);
