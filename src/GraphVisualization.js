@@ -100,14 +100,13 @@ const GraphVisualization = () => {
 
   const handleEngineStop = useCallback(() => {
     if (isInitialLoad && fgRef.current) {
-      fgRef.current.zoomToFit(400, 100);
       setIsInitialLoad(false);
     }
   }, [isInitialLoad]);
 
   const colorMapping = {
     subject: "#4361EE",
-    predicate: "#FF9800",
+    predicate: "#FFFF00",
     object: "#9D4EDD",
   };
 
@@ -199,7 +198,10 @@ const GraphVisualization = () => {
           nodeAutoColorBy="type"
           nodeThreeObject={(node) => {
             const sprite = new SpriteText(node.label || "");
-            sprite.color = node.color || colorMapping[node.type] || "#666";
+            sprite.borderRadius = 1;
+            sprite.backgroundColor = node.color + "55";
+            sprite.padding = 1;
+            sprite.color = "#fff";
             sprite.textHeight = 2;
             return sprite;
           }}
