@@ -15,45 +15,93 @@ const data_endpoint = "base";
 // Create GraphQL client with selected endpoint
 const client = new GraphQLClient(ENDPOINTS[data_endpoint]);
 
-// Fetch Triples
 export const fetchTriples = async () => {
-  const query = gql`
-    query {
-      triples(limit: 1000) {
-        id
-        subject {
-          label
-          id
-          type
-          creatorId
+  let query, data;
+  switch (data_endpoint) {
+    case "base":
+      query = gql`
+        query {
+          triples(limit: 100) {
+            items {
+              id
+              subject {
+                label
+                id
+                creatorId
+                type
+              }
+              predicate {
+                label
+                id
+                creatorId
+                type
+              }
+              object {
+                label
+                id
+                creatorId
+                type
+              }
+            }
+          }
         }
-        predicate {
-          label
-          id
-          type
-          creatorId
+      `;
+      data = await client.request(query);
+      return data.triples.items;
+    default:
+      query = gql`
+        query {
+          triples(limit: 1000) {
+            id
+            subject {
+              label
+              id
+              creatorId
+              type
+            }
+            predicate {
+              label
+              id
+              creatorId
+              type
+            }
+            object {
+              label
+              id
+              creatorId
+              type
+            }
+          }
         }
-        object {
-          label
-          id
-          type
-          creatorId
-        }
-      }
-    }
-  `;
-  try {
-    const data = await client.request(query);
-    return data.triples;
-  } catch (error) {
-    console.error("Error fetching triples:", error);
-    throw error;
+      `;
+      data = await client.request(query);
+      return data.triples;
   }
 };
 
 // Fetch Atom Details
 export const fetchAtomDetails = async (atomId) => {
-  const query = gql`
+  let query;
+  switch (data_endpoint) {
+    case "base":
+      query = gql`
+    query GetAtom($atomId: BigInt!) {
+      atom(id: $atomId) {
+        id
+        image
+        label
+        emoji
+        type
+        creatorId
+        vault {
+          totalShares
+        }
+      }
+    }
+  `;
+  break;
+  default:
+    query = gql`
     query GetAtom($atomId: numeric!) {
       atom(id: $atomId) {
         id
@@ -68,6 +116,8 @@ export const fetchAtomDetails = async (atomId) => {
       }
     }
   `;
+  }
+
   const variables = { atomId };
 
   try {
