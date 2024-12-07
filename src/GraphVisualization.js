@@ -54,7 +54,7 @@ const GraphVisualization = () => {
           ) {
             creatorNodes.push({
               id: `creator-${entity.creatorId}`,
-              label: `Creator ${entity.creatorId}`,
+              label: `${entity.creatorId}`,
               type: "creator",
               color: "green",
             });
