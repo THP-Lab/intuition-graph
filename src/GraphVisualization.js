@@ -186,24 +186,26 @@ const GraphVisualization = () => {
       )}
 
       {/* Graphique 3D */}
-      <ForceGraph3D
-        ref={(el) => (fgRef.current = el)}
-        graphData={graphData}
-        controlType="fly"
-        nodeLabel="label"
-        onNodeClick={handleNodeClick}
-        linkColor={() => "#666"}
-        linkDirectionalParticles={2}
-        linkDirectionalParticleSpeed={0.005}
-        nodeAutoColorBy="type"
-        nodeThreeObject={(node) => {
-          const sprite = new SpriteText(node.label || "");
-          sprite.color = node.color || colorMapping[node.type] || "#666";
-          sprite.textHeight = 2;
-          return sprite;
-        }}
-        onEngineStop={handleEngineStop}
-      />
+      {viewMode === "3D" && (
+        <ForceGraph3D
+          ref={(el) => (fgRef.current = el)}
+          graphData={graphData}
+          controlType="fly"
+          nodeLabel="label"
+          onNodeClick={handleNodeClick}
+          linkColor={() => "#666"}
+          linkDirectionalParticles={2}
+          linkDirectionalParticleSpeed={0.005}
+          nodeAutoColorBy="type"
+          nodeThreeObject={(node) => {
+            const sprite = new SpriteText(node.label || "");
+            sprite.color = node.color || colorMapping[node.type] || "#666";
+            sprite.textHeight = 2;
+            return sprite;
+          }}
+          onEngineStop={handleEngineStop}
+        />
+      )}
 
       {/* Mode VR */}
       {viewMode === "VR" && (
