@@ -5,7 +5,7 @@ const GraphLegend = ({ colors = {} }) => {
     <div
       style={{
         position: "absolute",
-        bottom: "60px",
+        bottom: "20px",
         right: "10px",
         zIndex: 10,
         background: "#222",
