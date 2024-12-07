@@ -47,7 +47,11 @@ const GraphVisualization = () => {
       entities.forEach((entity) => {
         if (entity.creatorId) {
           // Ajouter un nœud pour le créateur
-          if (!creatorNodes.find((node) => node.id === `creator-${entity.creatorId}`)) {
+          if (
+            !creatorNodes.find(
+              (node) => node.id === `creator-${entity.creatorId}`
+            )
+          ) {
             creatorNodes.push({
               id: `creator-${entity.creatorId}`,
               label: `Creator ${entity.creatorId}`,

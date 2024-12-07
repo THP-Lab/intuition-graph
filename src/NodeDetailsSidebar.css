@@ -96,7 +96,7 @@ pre {
 /* Zone défilante pour les "related triples" */
 .related-triples {
   margin-top: 20px;
-  background: rgba(0, 0, 0, 0.0); /* Noir semi-transparent harmonisé */
+  background: rgba(0, 0, 0, 0); /* Noir semi-transparent harmonisé */
   padding: 20px;
   border-radius: 5px;
   overflow-y: auto; /* Permet le défilement vertical */
