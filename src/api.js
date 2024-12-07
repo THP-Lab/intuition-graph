@@ -21,7 +21,7 @@ export const fetchTriples = async () => {
     case "base":
       query = gql`
         query {
-          triples(limit: 100) {
+          triples(limit: 1000) {
             items {
               id
               subject {
@@ -85,37 +85,37 @@ export const fetchAtomDetails = async (atomId) => {
   switch (data_endpoint) {
     case "base":
       query = gql`
-    query GetAtom($atomId: BigInt!) {
-      atom(id: $atomId) {
-        id
-        image
-        label
-        emoji
-        type
-        creatorId
-        vault {
-          totalShares
+        query GetAtom($atomId: BigInt!) {
+          atom(id: $atomId) {
+            id
+            image
+            label
+            emoji
+            type
+            creatorId
+            vault {
+              totalShares
+            }
+          }
         }
-      }
-    }
-  `;
-  break;
-  default:
-    query = gql`
-    query GetAtom($atomId: numeric!) {
-      atom(id: $atomId) {
-        id
-        image
-        label
-        emoji
-        type
-        creatorId
-        vault {
-          totalShares
+      `;
+      break;
+    default:
+      query = gql`
+        query GetAtom($atomId: numeric!) {
+          atom(id: $atomId) {
+            id
+            image
+            label
+            emoji
+            type
+            creatorId
+            vault {
+              totalShares
+            }
+          }
         }
-      }
-    }
-  `;
+      `;
   }
 
   const variables = { atomId };
