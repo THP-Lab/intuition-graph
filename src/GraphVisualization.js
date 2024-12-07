@@ -5,30 +5,79 @@ import { fetchTriples } from "./api";
 import { transformToGraphData } from "./graphData";
 import GraphLegend from "./GraphLegend";
 import GraphVR from "./GraphVR";
+import NodeDetailsSidebar from "./NodeDetailsSidebar";
 
 const GraphVisualization = () => {
   const [graphData, setGraphData] = useState({ nodes: [], links: [] });
   const [isInitialLoad, setIsInitialLoad] = useState(true);
   const [viewMode, setViewMode] = useState("2D");
+  const [selectedTriple, setSelectedTriple] = useState(null);
+  const [showCreators, setShowCreators] = useState(false);
   const fgRef = useRef();
 
-  // Fetch and transform graph data
+  // Charger les données
   useEffect(() => {
     const loadData = async () => {
       try {
         const triples = await fetchTriples();
-        const data = transformToGraphData(triples);
-        setGraphData(data);
+        let baseGraphData = transformToGraphData(triples);
+
+        // Ajouter les créateurs si le toggle est actif
+        if (showCreators) {
+          baseGraphData = enhanceGraphDataWithCreators(baseGraphData, triples);
+        }
+
+        setGraphData(baseGraphData);
       } catch (error) {
         console.error("Error loading graph data:", error);
       }
     };
-    loadData();
-  }, []);
 
-  // Handle 3D node clicks
+    loadData();
+  }, [showCreators]); // Recharger les données si le toggle `showCreators` change
+
+  // Fonction pour ajouter les créateurs au graphe
+  const enhanceGraphDataWithCreators = (graphData, triples) => {
+    const creatorNodes = [];
+    const creatorLinks = [];
+
+    triples.forEach((triple) => {
+      const entities = [triple.subject, triple.predicate, triple.object];
+
+      entities.forEach((entity) => {
+        if (entity.creatorId) {
+          // Ajouter un nœud pour le créateur
+          if (
+            !creatorNodes.find(
+              (node) => node.id === `creator-${entity.creatorId}`
+            )
+          ) {
+            creatorNodes.push({
+              id: `creator-${entity.creatorId}`,
+              label: `${entity.creatorId}`,
+              type: "creator",
+              color: "green",
+            });
+          }
+
+          // Ajouter un lien entre l'entité et son créateur
+          creatorLinks.push({
+            source: `creator-${entity.creatorId}`,
+            target: entity.id,
+            label: "created",
+          });
+        }
+      });
+    });
+
+    return {
+      nodes: [...graphData.nodes, ...creatorNodes],
+      links: [...graphData.links, ...creatorLinks],
+    };
+  };
+
   const handleNodeClick = useCallback(
-    (node) => {
+    async (node) => {
       if (viewMode === "3D" && fgRef.current) {
         const distance = 40;
         const distRatio =
@@ -43,11 +92,12 @@ const GraphVisualization = () => {
           500
         );
       }
+
+      setSelectedTriple(node);
     },
     [viewMode]
   );
 
-  // Fit graph to view after initial render
   const handleEngineStop = useCallback(() => {
     if (isInitialLoad && fgRef.current) {
       fgRef.current.zoomToFit(400, 100);
@@ -55,21 +105,6 @@ const GraphVisualization = () => {
     }
   }, [isInitialLoad]);
 
-  // Update graph size on window resize
-  useEffect(() => {
-    const handleResize = () => {
-      if (fgRef.current) {
-        fgRef.current.width = window.innerWidth;
-        fgRef.current.height = window.innerHeight;
-      }
-    };
-    window.addEventListener("resize", handleResize);
-    return () => {
-      window.removeEventListener("resize", handleResize);
-    };
-  }, []);
-
-  // Color mapping for graph legend
   const colorMapping = {
     subject: "#4361EE",
     predicate: "#FF9800",
@@ -77,8 +112,8 @@ const GraphVisualization = () => {
   };
 
   return (
-    <div style={{ width: "100%", height: "100vh", position: "relative" }}>
-      {/* View mode selector */}
+    <div>
+      {/* Options en haut à gauche */}
       <div
         style={{
           position: "absolute",
@@ -94,6 +129,7 @@ const GraphVisualization = () => {
           borderRadius: "4px",
         }}
       >
+        {/* Toggle pour le mode de vue */}
         <label htmlFor="viewMode" style={{ fontSize: "14px" }}>
           View Mode:
         </label>
@@ -113,9 +149,20 @@ const GraphVisualization = () => {
           <option value="3D">3D</option>
           <option value="VR">VR</option>
         </select>
+
+        {/* Toggle pour afficher les créateurs */}
+        <label style={{ fontSize: "14px", marginLeft: "10px" }}>
+          Show Creators
+          <input
+            type="checkbox"
+            checked={showCreators}
+            onChange={(e) => setShowCreators(e.target.checked)}
+            style={{ marginLeft: "8px" }}
+          />
+        </label>
       </div>
 
-      {/* Graph rendering based on view mode */}
+      {/* Graphique 2D */}
       {viewMode === "2D" && (
         <ForceGraph2D
           ref={(el) => (fgRef.current = el)}
@@ -132,11 +179,13 @@ const GraphVisualization = () => {
           linkColor={() => "#666"}
           linkDirectionalParticles={2}
           linkDirectionalParticleSpeed={0.02}
-          nodeAutoColorBy="group"
+          nodeAutoColorBy="type"
+          onNodeClick={handleNodeClick}
           onEngineStop={handleEngineStop}
         />
       )}
 
+      {/* Graphique 3D */}
       {viewMode === "3D" && (
         <ForceGraph3D
           ref={(el) => (fgRef.current = el)}
@@ -147,10 +196,10 @@ const GraphVisualization = () => {
           linkColor={() => "#666"}
           linkDirectionalParticles={2}
           linkDirectionalParticleSpeed={0.005}
-          nodeAutoColorBy="group"
+          nodeAutoColorBy="type"
           nodeThreeObject={(node) => {
             const sprite = new SpriteText(node.label || "");
-            sprite.color = node.color || "#000";
+            sprite.color = node.color || colorMapping[node.type] || "#666";
             sprite.textHeight = 2;
             return sprite;
           }}
@@ -158,12 +207,19 @@ const GraphVisualization = () => {
         />
       )}
 
+      {/* Mode VR */}
       {viewMode === "VR" && (
         <GraphVR graphData={graphData} onNodeClick={handleNodeClick} />
       )}
 
       {/* Graph legend */}
       <GraphLegend colors={colorMapping} />
+
+      {/* Barre latérale de détails */}
+      <NodeDetailsSidebar
+        triple={selectedTriple}
+        onClose={() => setSelectedTriple(null)}
+      />
     </div>
   );
 };

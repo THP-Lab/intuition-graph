@@ -1,4 +1,3 @@
-// src/api.js
 import { gql, GraphQLClient } from "graphql-request";
 
 // Hardcoded Endpoints
@@ -28,14 +27,20 @@ export const fetchTriples = async () => {
               subject {
                 label
                 id
+                creatorId
+                type
               }
               predicate {
                 label
                 id
+                creatorId
+                type
               }
               object {
                 label
                 id
+                creatorId
+                type
               }
             }
           }
@@ -51,14 +56,20 @@ export const fetchTriples = async () => {
             subject {
               label
               id
+              creatorId
+              type
             }
             predicate {
               label
               id
+              creatorId
+              type
             }
             object {
               label
               id
+              creatorId
+              type
             }
           }
         }
@@ -68,5 +79,52 @@ export const fetchTriples = async () => {
   }
 };
 
-// Export current endpoint for potential use in other components
-export const getCurrentEndpoint = () => ENDPOINTS[data_endpoint];
+// Fetch Atom Details
+export const fetchAtomDetails = async (atomId) => {
+  let query;
+  switch (data_endpoint) {
+    case "base":
+      query = gql`
+        query GetAtom($atomId: BigInt!) {
+          atom(id: $atomId) {
+            id
+            image
+            label
+            emoji
+            type
+            creatorId
+            vault {
+              totalShares
+            }
+          }
+        }
+      `;
+      break;
+    default:
+      query = gql`
+        query GetAtom($atomId: numeric!) {
+          atom(id: $atomId) {
+            id
+            image
+            label
+            emoji
+            type
+            creatorId
+            vault {
+              totalShares
+            }
+          }
+        }
+      `;
+  }
+
+  const variables = { atomId };
+
+  try {
+    const data = await client.request(query, variables);
+    return data.atom;
+  } catch (error) {
+    console.error("Error fetching atom details:", error);
+    throw error;
+  }
+};
