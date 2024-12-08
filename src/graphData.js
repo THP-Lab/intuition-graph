@@ -1,16 +1,10 @@
 // src/graphData.js
+import { getNodeColor } from "./nodeColors";
+
 export const transformToGraphData = (triples) => {
   const nodes = [];
   const links = [];
   const nodeMap = new Map();
-
-  // Helper to determine node color based on its roles
-  const getNodeColor = (role) => {
-    if (role === "predicate") return "#FF9800"; // Orange for predicates
-    if (role === "subject") return "#4361EE"; // Vibrant blue for subjects
-    if (role === "object") return "#9D4EDD"; // Rich purple for objects
-    return "#666666"; // Default gray
-  };
 
   // Process triples to create nodes and links
   triples.forEach(({ subject, predicate, object }) => {

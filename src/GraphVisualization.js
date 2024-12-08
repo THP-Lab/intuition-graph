@@ -3,23 +3,27 @@ import { ForceGraph2D, ForceGraph3D } from "react-force-graph";
 import SpriteText from "three-spritetext";
 import { fetchTriples } from "./api";
 import { transformToGraphData } from "./graphData";
+import { NODE_COLORS } from "./nodeColors";
 import GraphLegend from "./GraphLegend";
 import GraphVR from "./GraphVR";
 import NodeDetailsSidebar from "./NodeDetailsSidebar";
+import LoadingAnimation from "./LoadingAnimation";
 
-const GraphVisualization = () => {
+const GraphVisualization = ({ endpoint }) => {
   const [graphData, setGraphData] = useState({ nodes: [], links: [] });
   const [isInitialLoad, setIsInitialLoad] = useState(true);
   const [viewMode, setViewMode] = useState("2D");
   const [selectedTriple, setSelectedTriple] = useState(null);
   const [showCreators, setShowCreators] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const fgRef = useRef();
 
   // Charger les données
   useEffect(() => {
     const loadData = async () => {
+      setIsLoading(true);
       try {
-        const triples = await fetchTriples();
+        const triples = await fetchTriples(endpoint);
         let baseGraphData = transformToGraphData(triples);
 
         // Ajouter les créateurs si le toggle est actif
@@ -30,11 +34,13 @@ const GraphVisualization = () => {
         setGraphData(baseGraphData);
       } catch (error) {
         console.error("Error loading graph data:", error);
+      } finally {
+        setIsLoading(false);
       }
     };
 
     loadData();
-  }, [showCreators]); // Recharger les données si le toggle `showCreators` change
+  }, [showCreators, endpoint]); // Reload when endpoint changes
 
   // Fonction pour ajouter les créateurs au graphe
   const enhanceGraphDataWithCreators = (graphData, triples) => {
@@ -56,7 +62,7 @@ const GraphVisualization = () => {
               id: `creator-${entity.creatorId}`,
               label: `${entity.creatorId}`,
               type: "creator",
-              color: "green",
+              color: NODE_COLORS.CREATOR,
             });
           }
 
@@ -100,25 +106,20 @@ const GraphVisualization = () => {
 
   const handleEngineStop = useCallback(() => {
     if (isInitialLoad && fgRef.current) {
-      fgRef.current.zoomToFit(400, 100);
       setIsInitialLoad(false);
     }
   }, [isInitialLoad]);
 
-  const colorMapping = {
-    subject: "#4361EE",
-    predicate: "#FF9800",
-    object: "#9D4EDD",
-  };
-
   return (
     <div>
+      {isLoading && <LoadingAnimation />}
+
       {/* Options en haut à gauche */}
       <div
         style={{
           position: "absolute",
           top: "10px",
-          left: "10px",
+          right: "10px",
           zIndex: 10,
           display: "flex",
           alignItems: "center",
@@ -171,14 +172,56 @@ const GraphVisualization = () => {
             const label = node.label || "";
             const fontSize = 12 / globalScale;
             ctx.font = `${fontSize}px Sans-Serif`;
-            ctx.fillStyle = node.color || "#000";
+
+            // Measure text width for background
+            const textWidth = ctx.measureText(label).width;
+            const padding = 10 / globalScale; // Scale padding with zoom
+            const radius = 5 / globalScale; // Scale border radius with zoom
+
+            // Draw rounded rectangle backgrwound
+            ctx.fillStyle = node.color + "CC";
+            const x = node.x - textWidth / 2 - padding;
+            const y = node.y - fontSize / 2 - padding;
+            const width = textWidth + padding * 2;
+            const height = fontSize + padding * 2;
+
+            // Simple rounded rect using arcs (more performant than complex paths)
+            ctx.beginPath();
+            ctx.arc(x + radius, y + radius, radius, Math.PI, 1.5 * Math.PI);
+            ctx.arc(
+              x + width - radius,
+              y + radius,
+              radius,
+              1.5 * Math.PI,
+              2 * Math.PI
+            );
+            ctx.arc(
+              x + width - radius,
+              y + height - radius,
+              radius,
+              0,
+              0.5 * Math.PI
+            );
+            ctx.arc(
+              x + radius,
+              y + height - radius,
+              radius,
+              0.5 * Math.PI,
+              Math.PI
+            );
+            ctx.closePath();
+            ctx.fill();
+
+            // Draw text
+            ctx.fillStyle = "#fff";
             ctx.textAlign = "center";
             ctx.textBaseline = "middle";
             ctx.fillText(label, node.x, node.y);
           }}
           linkColor={() => "#666"}
-          linkDirectionalParticles={2}
+          linkDirectionalParticles={1}
           linkDirectionalParticleSpeed={0.02}
+          linkDirectionalParticleColor={() => "#fff"}
           nodeAutoColorBy="type"
           onNodeClick={handleNodeClick}
           onEngineStop={handleEngineStop}
@@ -199,7 +242,10 @@ const GraphVisualization = () => {
           nodeAutoColorBy="type"
           nodeThreeObject={(node) => {
             const sprite = new SpriteText(node.label || "");
-            sprite.color = node.color || colorMapping[node.type] || "#666";
+            sprite.borderRadius = 1;
+            sprite.backgroundColor = node.color + "55";
+            sprite.padding = 1;
+            sprite.color = "#fff";
             sprite.textHeight = 2;
             return sprite;
           }}
@@ -213,7 +259,7 @@ const GraphVisualization = () => {
       )}
 
       {/* Graph legend */}
-      <GraphLegend colors={colorMapping} />
+      <GraphLegend showCreators={showCreators} />
 
       {/* Barre latérale de détails */}
       <NodeDetailsSidebar
