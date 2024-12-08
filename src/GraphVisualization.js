@@ -7,6 +7,7 @@ import { NODE_COLORS } from "./nodeColors";
 import GraphLegend from "./GraphLegend";
 import GraphVR from "./GraphVR";
 import NodeDetailsSidebar from "./NodeDetailsSidebar";
+import LoadingAnimation from "./LoadingAnimation";
 
 const GraphVisualization = ({ endpoint }) => {
   const [graphData, setGraphData] = useState({ nodes: [], links: [] });
@@ -14,11 +15,13 @@ const GraphVisualization = ({ endpoint }) => {
   const [viewMode, setViewMode] = useState("2D");
   const [selectedTriple, setSelectedTriple] = useState(null);
   const [showCreators, setShowCreators] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const fgRef = useRef();
 
   // Charger les données
   useEffect(() => {
     const loadData = async () => {
+      setIsLoading(true);
       try {
         const triples = await fetchTriples(endpoint);
         let baseGraphData = transformToGraphData(triples);
@@ -31,6 +34,8 @@ const GraphVisualization = ({ endpoint }) => {
         setGraphData(baseGraphData);
       } catch (error) {
         console.error("Error loading graph data:", error);
+      } finally {
+        setIsLoading(true);
       }
     };
 
@@ -107,6 +112,8 @@ const GraphVisualization = ({ endpoint }) => {
 
   return (
     <div>
+      {isLoading && <LoadingAnimation />}
+
       {/* Options en haut à gauche */}
       <div
         style={{
