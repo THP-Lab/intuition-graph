@@ -1,6 +1,79 @@
-import React from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 
 const LoadingAnimation = () => {
+  const [positions, setPositions] = useState([]);
+  const animationRef = useRef();
+  const MAX_DISTANCE = 200; // Maximum distance for showing links
+
+  useEffect(() => {
+    let frameId;
+    const updatePositions = () => {
+      const time = Date.now() / 1000;
+      const newPositions = [];
+
+      // Calculate positions for each invisible point
+      // Outer orbit - Cyan
+      for (let i = 0; i < 3; i++) {
+        const angle = time * 0.8 + (i * 2 * Math.PI / 3);
+        newPositions.push({
+          x: Math.cos(angle) * 150 + 200,
+          y: Math.sin(angle) * 150 + 200,
+          color: '#00fff2'
+        });
+      }
+
+      // Middle orbit - Pink (reverse direction)
+      for (let i = 0; i < 3; i++) {
+        const angle = -time * 1.2 + (i * 2 * Math.PI / 3);
+        newPositions.push({
+          x: Math.cos(angle) * 100 + 200,
+          y: Math.sin(angle) * 100 + 200,
+          color: '#ff00ff'
+        });
+      }
+
+      // Inner orbit - Yellow
+      for (let i = 0; i < 3; i++) {
+        const angle = time * 1.5 + (i * 2 * Math.PI / 3);
+        newPositions.push({
+          x: Math.cos(angle) * 50 + 200,
+          y: Math.sin(angle) * 50 + 200,
+          color: '#ffff00'
+        });
+      }
+
+      setPositions(newPositions);
+      frameId = requestAnimationFrame(updatePositions);
+    };
+
+    updatePositions();
+    return () => cancelAnimationFrame(frameId);
+  }, []);
+
+  // Calculate links between nearby points
+  const links = positions.flatMap((point1, i) => 
+    positions.slice(i + 1).map((point2, j) => {
+      const dx = point2.x - point1.x;
+      const dy = point2.y - point1.y;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+      
+      if (distance < MAX_DISTANCE) {
+        const opacity = 1 - (distance / MAX_DISTANCE);
+        return {
+          x1: point1.x,
+          y1: point1.y,
+          x2: point2.x,
+          y2: point2.y,
+          opacity: opacity * 0.8, // Slightly reduce max opacity for subtler effect
+          gradient: `link-gradient-${i}-${j}`,
+          color1: point1.color,
+          color2: point2.color
+        };
+      }
+      return null;
+    }).filter(Boolean)
+  );
+
   return (
     <div style={{
       position: 'absolute',
@@ -9,150 +82,77 @@ const LoadingAnimation = () => {
       right: 0,
       bottom: 0,
       display: 'flex',
+      flexDirection: 'column',
       justifyContent: 'center',
       alignItems: 'center',
       background: 'rgba(0, 0, 0, 0.9)',
       zIndex: 1000,
       overflow: 'hidden'
     }}>
-      {/* Container for all animated elements */}
       <div style={{
         position: 'relative',
         width: '400px',
-        height: '400px'
+        height: '400px',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center'
       }}>
-        {/* Outer circle - Cyan balls */}
-        {[...Array(6)].map((_, index) => (
-          <div key={`outer-${index}`} style={{
-            position: 'absolute',
-            top: '50%',
-            left: '50%',
-            width: '300px',
-            height: '300px',
-            transform: `translate(-50%, -50%) rotate(${index * 60}deg)`,
-            animation: 'orbitOuter 8s linear infinite'
-          }}>
-            <div style={{
-              position: 'absolute',
-              top: '-15px',
-              left: '135px',
-              width: '30px',
-              height: '30px',
-              backgroundColor: '#00fff2',
-              borderRadius: '50%',
-              boxShadow: '0 0 20px #00fff2',
-              filter: 'brightness(1.5)',
-              animation: 'pulse 1.5s ease-in-out infinite'
-            }} />
-          </div>
-        ))}
+        {/* SVG for links */}
+        <svg width="400" height="400">
+          <defs>
+            {links.map(link => (
+              <linearGradient
+                key={link.gradient}
+                id={link.gradient}
+                x1="0%"
+                y1="0%"
+                x2="100%"
+                y2="0%"
+              >
+                <stop offset="0%" stopColor={link.color1} stopOpacity={link.opacity} />
+                <stop offset="100%" stopColor={link.color2} stopOpacity={link.opacity} />
+              </linearGradient>
+            ))}
+          </defs>
+          
+          {links.map((link, i) => (
+            <line
+              key={i}
+              x1={link.x1}
+              y1={link.y1}
+              x2={link.x2}
+              y2={link.y2}
+              stroke={`url(#${link.gradient})`}
+              strokeWidth="3"
+              style={{
+                filter: 'brightness(1.5) blur(1px)',
+              }}
+            />
+          ))}
+        </svg>
 
-        {/* Middle circle - Pink balls moving in opposite direction */}
-        {[...Array(4)].map((_, index) => (
-          <div key={`middle-${index}`} style={{
-            position: 'absolute',
-            top: '50%',
-            left: '50%',
-            width: '200px',
-            height: '200px',
-            transform: `translate(-50%, -50%) rotate(${index * 90}deg)`,
-            animation: 'orbitMiddle 6s linear infinite reverse'
-          }}>
-            <div style={{
-              position: 'absolute',
-              top: '-15px',
-              left: '85px',
-              width: '30px',
-              height: '30px',
-              backgroundColor: '#ff00ff',
-              borderRadius: '50%',
-              boxShadow: '0 0 20px #ff00ff',
-              filter: 'brightness(1.5)',
-              animation: 'pulse 2s ease-in-out infinite'
-            }} />
-          </div>
-        ))}
-
-        {/* Inner circle - Yellow balls */}
-        {[...Array(3)].map((_, index) => (
-          <div key={`inner-${index}`} style={{
-            position: 'absolute',
-            top: '50%',
-            left: '50%',
-            width: '100px',
-            height: '100px',
-            transform: `translate(-50%, -50%) rotate(${index * 120}deg)`,
-            animation: 'orbitInner 4s linear infinite'
-          }}>
-            <div style={{
-              position: 'absolute',
-              top: '-15px',
-              left: '35px',
-              width: '30px',
-              height: '30px',
-              backgroundColor: '#ffff00',
-              borderRadius: '50%',
-              boxShadow: '0 0 20px #ffff00',
-              filter: 'brightness(1.5)',
-              animation: 'pulse 1.8s ease-in-out infinite'
-            }} />
-          </div>
-        ))}
-
-        {/* Loading text - Keeping the existing style */}
+        {/* Loading text */}
         <div style={{
-          position: 'absolute',
-          width: '100%',
-          textAlign: 'center',
-          top: '420px',
           color: '#00fff2',
-          fontSize: '24px',
-          fontFamily: 'monospace',
-          letterSpacing: '8px',
+          fontSize: '40px',
+          fontFamily: 'sans-serif',
+          letterSpacing: '-2px',
           textShadow: `
             0 0 5px #00fff2,
             0 0 10px #00fff2,
             0 0 20px #00fff2,
             0 0 40px #00fff2
           `,
-          animation: 'textPulse 1.5s ease-in-out infinite'
+          animation: 'textPulse 1.5s ease-in-out infinite',
+          whiteSpace: 'nowrap',
+          marginTop: '20px'
         }}>
-          LOADING
+          Connecting I7n Dots...
         </div>
       </div>
 
       <style>
         {`
-          @keyframes orbitOuter {
-            0% { transform: translate(-50%, -50%) rotate(0deg); }
-            100% { transform: translate(-50%, -50%) rotate(360deg); }
-          }
-
-          @keyframes orbitMiddle {
-            0% { transform: translate(-50%, -50%) rotate(0deg); }
-            100% { transform: translate(-50%, -50%) rotate(360deg); }
-          }
-
-          @keyframes orbitInner {
-            0% { transform: translate(-50%, -50%) rotate(0deg); }
-            100% { transform: translate(-50%, -50%) rotate(360deg); }
-          }
-          
-          @keyframes pulse {
-            0% { 
-              opacity: 0.5;
-              transform: scale(0.8);
-            }
-            50% { 
-              opacity: 1;
-              transform: scale(1.2);
-            }
-            100% { 
-              opacity: 0.5;
-              transform: scale(0.8);
-            }
-          }
-          
           @keyframes textPulse {
             0% { 
               opacity: 0.5;

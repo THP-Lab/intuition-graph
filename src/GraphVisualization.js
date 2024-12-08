@@ -35,7 +35,7 @@ const GraphVisualization = ({ endpoint }) => {
       } catch (error) {
         console.error("Error loading graph data:", error);
       } finally {
-        setIsLoading(true);
+        setIsLoading(false);
       }
     };
 
