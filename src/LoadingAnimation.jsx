@@ -1,8 +1,7 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, {  useEffect, useState } from 'react';
 
 const LoadingAnimation = () => {
   const [positions, setPositions] = useState([]);
-  const animationRef = useRef();
   const MAX_DISTANCE = 200; // Maximum distance for showing links
 
   useEffect(() => {
