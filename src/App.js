@@ -10,7 +10,7 @@ function App() {
   return (
     <div className="App">
       <header className="App-header">
-        <h1>Intuition Knowledge Graph</h1>
+        <h1>0xIntuition Graph</h1>
       </header>
       <main className="App-main">
         <EndpointSelector
