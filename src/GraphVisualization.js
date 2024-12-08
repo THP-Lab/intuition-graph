@@ -7,7 +7,7 @@ import GraphLegend from "./GraphLegend";
 import GraphVR from "./GraphVR";
 import NodeDetailsSidebar from "./NodeDetailsSidebar";
 
-const GraphVisualization = () => {
+const GraphVisualization = ({ endpoint }) => {
   const [graphData, setGraphData] = useState({ nodes: [], links: [] });
   const [isInitialLoad, setIsInitialLoad] = useState(true);
   const [viewMode, setViewMode] = useState("2D");
@@ -19,7 +19,7 @@ const GraphVisualization = () => {
   useEffect(() => {
     const loadData = async () => {
       try {
-        const triples = await fetchTriples();
+        const triples = await fetchTriples(endpoint);
         let baseGraphData = transformToGraphData(triples);
 
         // Ajouter les créateurs si le toggle est actif
@@ -34,7 +34,7 @@ const GraphVisualization = () => {
     };
 
     loadData();
-  }, [showCreators]); // Recharger les données si le toggle `showCreators` change
+  }, [showCreators, endpoint]); // Reload when endpoint changes
 
   // Fonction pour ajouter les créateurs au graphe
   const enhanceGraphDataWithCreators = (graphData, triples) => {
@@ -117,7 +117,7 @@ const GraphVisualization = () => {
         style={{
           position: "absolute",
           top: "10px",
-          left: "10px",
+          right: "10px",
           zIndex: 10,
           display: "flex",
           alignItems: "center",

@@ -1,23 +1,31 @@
 import { gql, GraphQLClient } from "graphql-request";
 
-// Hardcoded Endpoints
-const ENDPOINTS = {
-  railsMockApi: "http://localhost:3042/api/v1/graph",
-  baseSepolia: "https://api.i7n.dev/v1/graphql",
-  base: "https://i7n.app/gql",
+// Hardcoded Endpoints with display names
+export const ENDPOINTS = {
+  railsMockApi: {
+    url: "http://api.i7n.thp-lab.org/api/v1/graph",
+    displayName: "[OffChain] Playground API",
+  },
+  baseSepolia: {
+    url: "https://api.i7n.dev/v1/graphql",
+    displayName: "Base Testnet",
+  },
+  base: {
+    url: "https://i7n.app/gql",
+    displayName: "Base Mainnet",
+  },
 };
 
-// Select which endpoint to use
-// Change this to switch endpoints:
-//'railsMockApi' | 'baseSepolia' | 'base'
-const data_endpoint = "base";
+// Create GraphQL client based on endpoint
+export const createClient = (endpoint) => {
+  return new GraphQLClient(ENDPOINTS[endpoint].url);
+};
 
-// Create GraphQL client with selected endpoint
-const client = new GraphQLClient(ENDPOINTS[data_endpoint]);
-
-export const fetchTriples = async () => {
+export const fetchTriples = async (endpoint = "base") => {
+  const client = createClient(endpoint);
   let query, data;
-  switch (data_endpoint) {
+
+  switch (endpoint) {
     case "base":
       query = gql`
         query {
@@ -80,9 +88,10 @@ export const fetchTriples = async () => {
 };
 
 // Fetch Atom Details
-export const fetchAtomDetails = async (atomId) => {
+export const fetchAtomDetails = async (atomId, endpoint = "base") => {
+  const client = createClient(endpoint);
   let query;
-  switch (data_endpoint) {
+  switch (endpoint) {
     case "base":
       query = gql`
         query GetAtom($atomId: BigInt!) {
