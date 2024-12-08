@@ -1,6 +1,14 @@
 import React from "react";
+import { NODE_COLORS } from "./nodeColors";
 
-const GraphLegend = ({ colors = {} }) => {
+const GraphLegend = ({ showCreators = false }) => {
+  const legendEntries = Object.entries(NODE_COLORS)
+    .filter(([key]) => key !== 'CREATOR' || showCreators)
+    .map(([key, color]) => ({
+      role: key.toLowerCase(),
+      color
+    }));
+
   return (
     <div
       style={{
@@ -18,7 +26,7 @@ const GraphLegend = ({ colors = {} }) => {
     >
       <h4 style={{ margin: "0 0 10px 0", fontSize: "16px" }}>Graph Legend</h4>
       <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
-        {Object.entries(colors).map(([role, color]) => (
+        {legendEntries.map(({ role, color }) => (
           <li
             key={role}
             style={{

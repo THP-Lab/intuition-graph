@@ -3,6 +3,7 @@ import { ForceGraph2D, ForceGraph3D } from "react-force-graph";
 import SpriteText from "three-spritetext";
 import { fetchTriples } from "./api";
 import { transformToGraphData } from "./graphData";
+import { NODE_COLORS } from "./nodeColors";
 import GraphLegend from "./GraphLegend";
 import GraphVR from "./GraphVR";
 import NodeDetailsSidebar from "./NodeDetailsSidebar";
@@ -56,7 +57,7 @@ const GraphVisualization = ({ endpoint }) => {
               id: `creator-${entity.creatorId}`,
               label: `${entity.creatorId}`,
               type: "creator",
-              color: "green",
+              color: NODE_COLORS.CREATOR,
             });
           }
 
@@ -103,12 +104,6 @@ const GraphVisualization = ({ endpoint }) => {
       setIsInitialLoad(false);
     }
   }, [isInitialLoad]);
-
-  const colorMapping = {
-    subject: "#4361EE",
-    predicate: "#FF7300",
-    object: "#9D4EDD",
-  };
 
   return (
     <div>
@@ -257,7 +252,7 @@ const GraphVisualization = ({ endpoint }) => {
       )}
 
       {/* Graph legend */}
-      <GraphLegend colors={colorMapping} />
+      <GraphLegend showCreators={showCreators} />
 
       {/* Barre latérale de détails */}
       <NodeDetailsSidebar
