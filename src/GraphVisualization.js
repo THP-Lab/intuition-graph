@@ -106,7 +106,7 @@ const GraphVisualization = () => {
 
   const colorMapping = {
     subject: "#4361EE",
-    predicate: "#FFFF00",
+    predicate: "#FF7300",
     object: "#9D4EDD",
   };
 
@@ -170,14 +170,56 @@ const GraphVisualization = () => {
             const label = node.label || "";
             const fontSize = 12 / globalScale;
             ctx.font = `${fontSize}px Sans-Serif`;
-            ctx.fillStyle = node.color || "#000";
+
+            // Measure text width for background
+            const textWidth = ctx.measureText(label).width;
+            const padding = 10 / globalScale; // Scale padding with zoom
+            const radius = 5 / globalScale; // Scale border radius with zoom
+
+            // Draw rounded rectangle backgrwound
+            ctx.fillStyle = node.color + "CC";
+            const x = node.x - textWidth / 2 - padding;
+            const y = node.y - fontSize / 2 - padding;
+            const width = textWidth + padding * 2;
+            const height = fontSize + padding * 2;
+
+            // Simple rounded rect using arcs (more performant than complex paths)
+            ctx.beginPath();
+            ctx.arc(x + radius, y + radius, radius, Math.PI, 1.5 * Math.PI);
+            ctx.arc(
+              x + width - radius,
+              y + radius,
+              radius,
+              1.5 * Math.PI,
+              2 * Math.PI
+            );
+            ctx.arc(
+              x + width - radius,
+              y + height - radius,
+              radius,
+              0,
+              0.5 * Math.PI
+            );
+            ctx.arc(
+              x + radius,
+              y + height - radius,
+              radius,
+              0.5 * Math.PI,
+              Math.PI
+            );
+            ctx.closePath();
+            ctx.fill();
+
+            // Draw text
+            ctx.fillStyle = "#fff";
             ctx.textAlign = "center";
             ctx.textBaseline = "middle";
             ctx.fillText(label, node.x, node.y);
           }}
           linkColor={() => "#666"}
-          linkDirectionalParticles={2}
+          linkDirectionalParticles={1}
           linkDirectionalParticleSpeed={0.02}
+          linkDirectionalParticleColor={() => "#fff"}
           nodeAutoColorBy="type"
           onNodeClick={handleNodeClick}
           onEngineStop={handleEngineStop}

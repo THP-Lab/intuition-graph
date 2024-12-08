@@ -6,7 +6,7 @@ export const transformToGraphData = (triples) => {
 
   // Helper to determine node color based on its roles
   const getNodeColor = (role) => {
-    if (role === "predicate") return "#FFFF00"; // Orange for predicates
+    if (role === "predicate") return "#FF7300"; // Orange for predicates
     if (role === "subject") return "#4361EE"; // Vibrant blue for subjects
     if (role === "object") return "#9D4EDD"; // Rich purple for objects
     return "#666666"; // Default gray
