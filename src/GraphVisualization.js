@@ -8,15 +8,20 @@ import GraphLegend from "./GraphLegend";
 import GraphVR from "./GraphVR";
 import NodeDetailsSidebar from "./NodeDetailsSidebar";
 import LoadingAnimation from "./LoadingAnimation";
+import { useCameraControls } from "./cameraControls";
 
 const GraphVisualization = ({ endpoint }) => {
   const [graphData, setGraphData] = useState({ nodes: [], links: [] });
   const [isInitialLoad, setIsInitialLoad] = useState(true);
-  const [viewMode, setViewMode] = useState("2D");
+  const [viewMode, setViewMode] = useState("3D");
   const [selectedTriple, setSelectedTriple] = useState(null);
   const [showCreators, setShowCreators] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const fgRef = useRef();
+
+  // Initialize camera controls
+  const { isFreeLookEnabled, resetCameraControls, FreeLookIndicator } =
+    useCameraControls(fgRef, viewMode);
 
   // Charger les données
   useEffect(() => {
@@ -88,7 +93,8 @@ const GraphVisualization = ({ endpoint }) => {
         const distance = 40;
         const distRatio =
           1 + distance / Math.hypot(node.x || 1, node.y || 1, node.z || 1);
-        fgRef.current.cameraPosition(
+
+        await fgRef.current.cameraPosition(
           {
             x: node.x * distRatio,
             y: node.y * distRatio,
@@ -97,11 +103,14 @@ const GraphVisualization = ({ endpoint }) => {
           node,
           500
         );
+
+        // Reset camera controls after movement
+        setTimeout(resetCameraControls, 600);
       }
 
       setSelectedTriple(node);
     },
-    [viewMode]
+    [viewMode, resetCameraControls]
   );
 
   const handleEngineStop = useCallback(() => {
@@ -161,6 +170,9 @@ const GraphVisualization = ({ endpoint }) => {
             style={{ marginLeft: "8px" }}
           />
         </label>
+
+        {/* Free Look Indicator */}
+        <FreeLookIndicator />
       </div>
 
       {/* Graphique 2D */}
@@ -234,6 +246,7 @@ const GraphVisualization = ({ endpoint }) => {
           ref={(el) => (fgRef.current = el)}
           graphData={graphData}
           controlType="fly"
+          enableNavigationControls={!isFreeLookEnabled}
           nodeLabel="label"
           onNodeClick={handleNodeClick}
           linkColor={() => "#666"}
