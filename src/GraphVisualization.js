@@ -16,6 +16,7 @@ const GraphVisualization = ({ endpoint }) => {
   const [selectedTriple, setSelectedTriple] = useState(null);
   const [showCreators, setShowCreators] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [controlType, setControlType] = useState("fly"); // Ajout pour les contrôles
   const fgRef = useRef();
 
   // Charger les données
@@ -110,6 +111,10 @@ const GraphVisualization = ({ endpoint }) => {
     }
   }, [isInitialLoad]);
 
+  const toggleControlType = () => {
+    setControlType((prev) => (prev === "fly" ? "orbit" : "fly"));
+  };
+
   return (
     <div>
       {isLoading && <LoadingAnimation />}
@@ -161,6 +166,23 @@ const GraphVisualization = ({ endpoint }) => {
             style={{ marginLeft: "8px" }}
           />
         </label>
+
+        {/* Bouton pour basculer entre FlyControls et OrbitControls */}
+        {viewMode === "3D" && (
+          <button
+            onClick={toggleControlType}
+            style={{
+              padding: "5px 10px",
+              background: "#666",
+              color: "#fff",
+              border: "none",
+              borderRadius: "4px",
+              cursor: "pointer",
+            }}
+          >
+            Switch to {controlType === "fly" ? "Orbit Controls" : "Fly Controls"}
+          </button>
+        )}
       </div>
 
       {/* Graphique 2D */}
@@ -168,56 +190,6 @@ const GraphVisualization = ({ endpoint }) => {
         <ForceGraph2D
           ref={(el) => (fgRef.current = el)}
           graphData={graphData}
-          nodeCanvasObject={(node, ctx, globalScale) => {
-            const label = node.label || "";
-            const fontSize = 12 / globalScale;
-            ctx.font = `${fontSize}px Sans-Serif`;
-
-            // Measure text width for background
-            const textWidth = ctx.measureText(label).width;
-            const padding = 10 / globalScale; // Scale padding with zoom
-            const radius = 5 / globalScale; // Scale border radius with zoom
-
-            // Draw rounded rectangle backgrwound
-            ctx.fillStyle = node.color + "CC";
-            const x = node.x - textWidth / 2 - padding;
-            const y = node.y - fontSize / 2 - padding;
-            const width = textWidth + padding * 2;
-            const height = fontSize + padding * 2;
-
-            // Simple rounded rect using arcs (more performant than complex paths)
-            ctx.beginPath();
-            ctx.arc(x + radius, y + radius, radius, Math.PI, 1.5 * Math.PI);
-            ctx.arc(
-              x + width - radius,
-              y + radius,
-              radius,
-              1.5 * Math.PI,
-              2 * Math.PI
-            );
-            ctx.arc(
-              x + width - radius,
-              y + height - radius,
-              radius,
-              0,
-              0.5 * Math.PI
-            );
-            ctx.arc(
-              x + radius,
-              y + height - radius,
-              radius,
-              0.5 * Math.PI,
-              Math.PI
-            );
-            ctx.closePath();
-            ctx.fill();
-
-            // Draw text
-            ctx.fillStyle = "#fff";
-            ctx.textAlign = "center";
-            ctx.textBaseline = "middle";
-            ctx.fillText(label, node.x, node.y);
-          }}
           linkColor={() => "#666"}
           linkDirectionalParticles={1}
           linkDirectionalParticleSpeed={0.02}
@@ -231,9 +203,10 @@ const GraphVisualization = ({ endpoint }) => {
       {/* Graphique 3D */}
       {viewMode === "3D" && (
         <ForceGraph3D
+          key={controlType} // Force la re-montée pour appliquer le changement
           ref={(el) => (fgRef.current = el)}
           graphData={graphData}
-          controlType="fly"
+          controlType={controlType} // Contrôle dynamique
           nodeLabel="label"
           onNodeClick={handleNodeClick}
           linkColor={() => "#666"}
