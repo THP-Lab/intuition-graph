@@ -102,7 +102,7 @@ const GraphVisualization = ({ endpoint }) => {
           };
 
           // Récupérer les nouveaux triplets
-          const filteredTriples = await fetchTriplesForNode(node.id);
+          const filteredTriples = await fetchTriplesForNode(node.id, endpoint);
           const newGraphData = transformToGraphData(filteredTriples);
 
           // Assigner la position sauvegardée au nœud correspondant dans le nouveau graphe
@@ -299,7 +299,6 @@ const GraphVisualization = ({ endpoint }) => {
           nodeAutoColorBy="type"
           onNodeClick={handleNodeClick}
           onEngineStop={handleEngineStop}
-          onNodeClick={handleNodeClick}
         />
       )}
 

@@ -142,62 +142,60 @@ export const fetchTriplesForNode = async (nodeId, endpoint) => {
   const client = createClient(endpoint);
 
   const query = gql`
-    query {
-      triples(filter: { subject: "${nodeId}" }) {
+    query Triples($where: triples_bool_exp) {
+      triples(where: $where) {
         id
+        label
         subject {
           label
           id
+          creatorId
+          type
         }
         predicate {
           label
           id
+          creatorId
+          type
         }
         object {
           label
           id
-        }
-      }
-      triples(filter: { object: "${nodeId}" }) {
-        id
-        subject {
-          label
-          id
-        }
-        predicate {
-          label
-          id
-        }
-        object {
-          label
-          id
+          creatorId
+          type
         }
       }
     }
   `;
 
-  const data = await client.request(query);
+  const variables = {
+    where: {
+      _or: [
+        {
+          predicateId: {
+            _eq: nodeId,
+          },
+        },
+        {
+          subjectId: {
+            _eq: nodeId,
+          },
+        },
+        {
+          objectId: {
+            _eq: nodeId,
+          },
+        },
+        {
+          creatorId: {
+            _eq: nodeId,
+          },
+        },
+      ],
+    },
+  };
+
+  const data = await client.request(query, variables);
   console.log("Données récupérées :", data); // Vérifiez la structure ici
-
-  // Combinez les résultats des deux requêtes
-  const subjectTriples = data.triples.filter(
-    (triple) => triple.subject.id === nodeId
-  );
-  const objectTriples = data.triples.filter(
-    (triple) => triple.object.id === nodeId
-  );
-
-  console.log("Triples par sujet :", subjectTriples); // Log des triples par sujet
-  console.log("Triples par objet :", objectTriples); // Log des triples par objet
-
-  // Combinez les résultats des deux requêtes
-  const combinedTriples = [...subjectTriples, ...objectTriples];
-
-  // Éliminez les doublons
-  const uniqueTriples = Array.from(
-    new Set(combinedTriples.map((triple) => triple.id))
-  ).map((id) => combinedTriples.find((triple) => triple.id === id));
-
-  console.log("Triples récupérés pour le nœud :", uniqueTriples); // Ajoutez ce log
-  return uniqueTriples; // Retourne les triplets filtrés
+  return data.triples;
 };
