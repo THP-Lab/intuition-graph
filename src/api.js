@@ -3,7 +3,7 @@ import { gql, GraphQLClient } from "graphql-request";
 // Hardcoded Endpoints with display names
 export const ENDPOINTS = {
   railsMockApi: {
-    url: "http://api-i7n.thp-lab.org/api/v1/graph",
+    url: "https://api-i7n.thp-lab.org/api/v1/graph",
     displayName: "[OffChain] Playground API",
   },
   baseSepolia: {
