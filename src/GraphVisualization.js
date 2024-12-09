@@ -13,14 +13,14 @@ import { useCameraControls } from "./cameraControls";
 const GraphVisualization = ({ endpoint }) => {
   const [graphData, setGraphData] = useState({ nodes: [], links: [] });
   const [isInitialLoad, setIsInitialLoad] = useState(true);
-  const [viewMode, setViewMode] = useState("3D");
+  const [viewMode, setViewMode] = useState("2D");
   const [selectedTriple, setSelectedTriple] = useState(null);
   const [showCreators, setShowCreators] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const fgRef = useRef();
 
   // Initialize camera controls
-  const { isFreeLookEnabled, resetCameraControls, FreeLookIndicator } =
+  const { isFreeLookEnabled, moveToNode, FreeLookIndicator } =
     useCameraControls(fgRef, viewMode);
 
   // Charger les données
@@ -89,28 +89,12 @@ const GraphVisualization = ({ endpoint }) => {
 
   const handleNodeClick = useCallback(
     async (node) => {
-      if (viewMode === "3D" && fgRef.current) {
-        const distance = 40;
-        const distRatio =
-          1 + distance / Math.hypot(node.x || 1, node.y || 1, node.z || 1);
-
-        await fgRef.current.cameraPosition(
-          {
-            x: node.x * distRatio,
-            y: node.y * distRatio,
-            z: node.z * distRatio,
-          },
-          node,
-          500
-        );
-
-        // Reset camera controls after movement
-        setTimeout(resetCameraControls, 600);
+      if (viewMode === "3D") {
+        await moveToNode(node);
       }
-
       setSelectedTriple(node);
     },
-    [viewMode, resetCameraControls]
+    [viewMode, moveToNode]
   );
 
   const handleEngineStop = useCallback(() => {
@@ -245,8 +229,6 @@ const GraphVisualization = ({ endpoint }) => {
         <ForceGraph3D
           ref={(el) => (fgRef.current = el)}
           graphData={graphData}
-          controlType="fly"
-          enableNavigationControls={!isFreeLookEnabled}
           nodeLabel="label"
           onNodeClick={handleNodeClick}
           linkColor={() => "#666"}
