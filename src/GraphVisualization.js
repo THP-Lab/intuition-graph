@@ -35,6 +35,7 @@ const GraphVisualization = ({ endpoint }) => {
         }
 
         setGraphData(baseGraphData);
+        setInitialGraphData(baseGraphData);
       } catch (error) {
         console.error("Error loading graph data:", error);
       } finally {
@@ -171,6 +172,7 @@ const GraphVisualization = ({ endpoint }) => {
     [viewMode]
   );
 
+
   // Fit graph to view after initial render
   const handleEngineStop = useCallback(() => {
     if (isInitialLoad && fgRef.current) {
@@ -183,7 +185,7 @@ const GraphVisualization = ({ endpoint }) => {
       {isLoading && <LoadingAnimation />}
       <button
         onClick={resetGraph}
-        style={{ position: "absolute", top: "10px", right: "10px", zIndex: 10 }}
+        style={{ position: "absolute", top: "75px", right: "10px", zIndex: 50 }}
       >
         Revenir au graphique initial
       </button>
