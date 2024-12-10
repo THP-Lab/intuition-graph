@@ -140,61 +140,105 @@ export const fetchAtomDetails = async (atomId, endpoint = "base") => {
 
 export const fetchTriplesForNode = async (nodeId, endpoint) => {
   const client = createClient(endpoint);
+  let query, data, variables;
 
-  const query = gql`
-    query Triples($where: triples_bool_exp) {
-      triples(where: $where) {
-        id
-        label
-        subject {
-          label
-          id
-          creatorId
-          type
+  switch (endpoint) {
+    case "base":
+      query = gql`
+        query Triples($where: TripleFilter) {
+          triples(where: $where) {
+            items {
+                id
+                label
+                subject {
+                  label
+                  id
+                  creatorId
+                  type
+                }
+                predicate {
+                  label
+                  id
+                  creatorId
+                  type
+                }
+                object {
+                  label
+                  id
+                  creatorId
+                  type
+                }
+            }
+          }
         }
-        predicate {
-          label
-          id
-          creatorId
-          type
-        }
-        object {
-          label
-          id
-          creatorId
-          type
-        }
-      }
-    }
-  `;
-
-  const variables = {
-    where: {
-      _or: [
-        {
-          predicateId: {
-            _eq: nodeId,
-          },
+      `;
+      variables = {
+        where: {
+          OR: [
+            {
+              subjectId: parseInt(nodeId),
+            },
+            {
+              predicateId: parseInt(nodeId)
+            },
+            {
+              objectId: parseInt(nodeId)
+            },
+          ],
         },
-        {
-          subjectId: {
-            _eq: nodeId,
-          },
+      };
+      data = await client.request(query, variables);
+      debugger
+      return data.triples.items;
+    default:
+      query = gql`
+          query Triples($where: triples_bool_exp) {
+            triples(where: $where) {
+              id
+              label
+              subject {
+                label
+                id
+                creatorId
+                type
+              }
+              predicate {
+                label
+                id
+                creatorId
+                type
+              }
+              object {
+                label
+                id
+                creatorId
+                type
+              }
+            }
+          }
+      `;
+      variables = {
+        where: {
+          _or: [
+            {
+              predicateId: {
+                _eq: nodeId,
+              },
+            },
+            {
+              subjectId: {
+                _eq: nodeId,
+              },
+            },
+            {
+              creatorId: {
+                _eq: nodeId,
+              },
+            },
+          ],
         },
-        {
-          objectId: {
-            _eq: nodeId,
-          },
-        },
-        {
-          creatorId: {
-            _eq: nodeId,
-          },
-        },
-      ],
-    },
-  };
-
-  const data = await client.request(query, variables);
-  return data.triples;
+      };
+      data = await client.request(query, variables);
+      return data.triples;
+  }
 };
