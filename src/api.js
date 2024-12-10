@@ -196,6 +196,5 @@ export const fetchTriplesForNode = async (nodeId, endpoint) => {
   };
 
   const data = await client.request(query, variables);
-  console.log("Données récupérées :", data); // Vérifiez la structure ici
   return data.triples;
 };

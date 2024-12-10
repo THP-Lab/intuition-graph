@@ -20,6 +20,8 @@ const GraphVisualization = ({ endpoint }) => {
   const [showCreators, setShowCreators] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const fgRef = useRef();
+  const [graphHistory, setGraphHistory] = useState([]);
+  const [currentHistoryIndex, setCurrentHistoryIndex] = useState(-1);
 
   // Charger les données
   useEffect(() => {
@@ -119,6 +121,15 @@ const GraphVisualization = ({ endpoint }) => {
             if (viewMode === "3D") targetNode.fz = nodePosition.z;
           }
 
+          // Sauvegarder l'état actuel dans l'historique
+          setGraphHistory((prevHistory) => {
+            const updatedHistory = prevHistory.slice(0, currentHistoryIndex + 1);
+            updatedHistory.push(graphData); // Ajouter l'état actuel
+            return updatedHistory;
+          });
+          setCurrentHistoryIndex((prevIndex) => prevIndex + 1);
+
+
           setGraphData(newGraphData);
 
           // Attendre que le graphe soit stabilisé
@@ -169,7 +180,7 @@ const GraphVisualization = ({ endpoint }) => {
 
       setSelectedTriple(node);
     },
-    [viewMode]
+    [viewMode, graphData, currentHistoryIndex]
   );
 
 
@@ -180,6 +191,22 @@ const GraphVisualization = ({ endpoint }) => {
     }
   }, [isInitialLoad]);
 
+
+  // Boutons Précédent et Suivant
+const goBack = () => {
+  if (currentHistoryIndex > 0) {
+    setGraphData(graphHistory[currentHistoryIndex - 1]);
+    setCurrentHistoryIndex((prevIndex) => prevIndex - 1);
+  }
+};
+
+const goForward = () => {
+  if (currentHistoryIndex < graphHistory.length - 1) {
+    setGraphData(graphHistory[currentHistoryIndex + 1]);
+    setCurrentHistoryIndex((prevIndex) => prevIndex + 1);
+  }
+};
+
   return (
     <div>
       {isLoading && <LoadingAnimation />}
@@ -187,8 +214,22 @@ const GraphVisualization = ({ endpoint }) => {
         onClick={resetGraph}
         style={{ position: "absolute", top: "75px", right: "10px", zIndex: 50 }}
       >
-        Revenir au graphique initial
+        Return to initial graph
       </button>
+
+      <button
+        onClick={goBack}
+        style={{ position: "absolute", top: "100px", right: "10px", zIndex: 50 }}
+        disabled={currentHistoryIndex <= 0}>
+        Previous
+      </button>
+      <button 
+        onClick={goForward} 
+        style={{ position: "absolute", top: "100px", right: "100px", zIndex: 50 }}
+        disabled={currentHistoryIndex >= graphHistory.length - 1}>
+        Next
+      </button>
+
 
       {/* Options en haut à gauche */}
       <div
