@@ -14,7 +14,7 @@ export const createClient = (endpoint) => {
 };
 
 // Fetch Atom Details
-export const fetchAtomDetails = async (atomId, endpoint = "base") => {
+export const fetchAtomDetails = async (atomId, endpoint = "baseSepolia") => {
     const client = createClient(endpoint);
     let query;
     query = gql`
@@ -45,7 +45,7 @@ export const fetchAtomDetails = async (atomId, endpoint = "base") => {
 };
 
 // Fetch Triples Details
-export const fetchTriples = async (endpoint = "base") => {
+export const fetchTriples = async (endpoint = "baseSepolia") => {
     const client = createClient(endpoint);
     let query, data;
     query = gql`
@@ -74,11 +74,14 @@ export const fetchTriples = async (endpoint = "base") => {
           }
         `;
     data = await client.request(query);
-    return data.triples;
+    // Match the structure returned by Base.js
+    return {
+        items: data.triples
+    }.items;
 };
 
 // Fetch Embedded triples Details
-export const fetchTriplesForNode = async (nodeId, endpoint) => {
+export const fetchTriplesForNode = async (nodeId, endpoint = "baseSepolia") => {
     const client = createClient(endpoint);
     let query, data, variables;
     query = gql`

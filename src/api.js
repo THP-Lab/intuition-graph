@@ -7,6 +7,7 @@ export const ENDPOINTS = {
   railsMockApi: {
     url: "https://api-i7n.thp-lab.org/api/v1/graph",
     displayName: "[OffChain] Playground API",
+    module: Base, // Default to Base module for railsMockApi
   },
   baseSepolia: {
     url: "https://api.i7n.dev/v1/graphql",
@@ -39,18 +40,32 @@ const getModuleForEndpoint = (endpoint) => {
 // Unified fetchTriples function
 export const fetchTriples = async (endpoint = "base") => {
   const module = getModuleForEndpoint(endpoint);
-  return module.fetchTriples(endpoint);
+  try {
+    return module.fetchTriples(endpoint);
+  } catch (error) {
+    console.error(`Error fetching triples for endpoint ${endpoint}:`, error);
+    throw error;
+  }
 };
 
 // Unified fetchTriplesForNode function
 export const fetchTriplesForNode = async (nodeId, endpoint = "base") => {
   const module = getModuleForEndpoint(endpoint);
-  debugger
-  return module.fetchTriplesForNode(nodeId, endpoint);
+  try {
+    return module.fetchTriplesForNode(nodeId, endpoint);
+  } catch (error) {
+    console.error(`Error fetching triples for node ${nodeId} with endpoint ${endpoint}:`, error);
+    throw error;
+  }
 };
 
 // Unified fetchAtomDetails function
 export const fetchAtomDetails = async (atomId, endpoint = "base") => {
   const module = getModuleForEndpoint(endpoint);
-  return module.fetchAtomDetails(atomId, endpoint);
+  try {
+    return module.fetchAtomDetails(atomId, endpoint);
+  } catch (error) {
+    console.error(`Error fetching atom details for ${atomId} with endpoint ${endpoint}:`, error);
+    throw error;
+  }
 };
