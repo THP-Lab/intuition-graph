@@ -5,7 +5,7 @@ import GraphVisualization from "./GraphVisualization";
 import EndpointSelector from "./EndpointSelector";
 
 function App() {
-  const [endpoint, setEndpoint] = useState("baseSepolia");
+  const [endpoint, setEndpoint] = useState("base");
 
   return (
     <div className="App">
