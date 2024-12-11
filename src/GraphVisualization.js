@@ -1,22 +1,27 @@
 import React, { useEffect, useState, useCallback, useRef } from "react";
 import { ForceGraph2D, ForceGraph3D } from "react-force-graph";
 import SpriteText from "three-spritetext";
-import { fetchTriples } from "./api";
+import { fetchTriples, fetchTriplesForNode } from "./api";
 import { transformToGraphData } from "./graphData";
 import { NODE_COLORS } from "./nodeColors";
 import GraphLegend from "./GraphLegend";
 import GraphVR from "./GraphVR";
 import NodeDetailsSidebar from "./NodeDetailsSidebar";
 import LoadingAnimation from "./LoadingAnimation";
+import * as d3 from "d3";
 
 const GraphVisualization = ({ endpoint }) => {
   const [graphData, setGraphData] = useState({ nodes: [], links: [] });
+  const [initialGraphData, setInitialGraphData] = useState(null);
+  const [previousGraphData, setPreviousGraphData] = useState(null);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
   const [viewMode, setViewMode] = useState("2D");
   const [selectedTriple, setSelectedTriple] = useState(null);
   const [showCreators, setShowCreators] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const fgRef = useRef();
+  const [graphHistory, setGraphHistory] = useState([]);
+  const [currentHistoryIndex, setCurrentHistoryIndex] = useState(-1);
 
   // Charger les données
   useEffect(() => {
@@ -32,6 +37,7 @@ const GraphVisualization = ({ endpoint }) => {
         }
 
         setGraphData(baseGraphData);
+        setInitialGraphData(baseGraphData);
       } catch (error) {
         console.error("Error loading graph data:", error);
       } finally {
@@ -41,6 +47,11 @@ const GraphVisualization = ({ endpoint }) => {
 
     loadData();
   }, [showCreators, endpoint]); // Reload when endpoint changes
+
+  const resetGraph = () => {
+    setGraphData(initialGraphData);
+    setPreviousGraphData(null);
+  };
 
   // Fonction pour ajouter les créateurs au graphe
   const enhanceGraphDataWithCreators = (graphData, triples) => {
@@ -84,35 +95,144 @@ const GraphVisualization = ({ endpoint }) => {
 
   const handleNodeClick = useCallback(
     async (node) => {
-      if (viewMode === "3D" && fgRef.current) {
-        const distance = 40;
-        const distRatio =
-          1 + distance / Math.hypot(node.x || 1, node.y || 1, node.z || 1);
-        fgRef.current.cameraPosition(
-          {
-            x: node.x * distRatio,
-            y: node.y * distRatio,
-            z: node.z * distRatio,
-          },
-          node,
-          500
-        );
+      if (fgRef.current) {
+        try {
+          // Sauvegarder la position actuelle du nœud
+          const nodePosition = {
+            x: node.x,
+            y: node.y,
+            z: node.z || 0, // En 2D, z sera 0
+          };
+
+          // Récupérer les nouveaux triplets
+          const filteredTriples = await fetchTriplesForNode(node.id, endpoint);
+          const newGraphData = transformToGraphData(filteredTriples);
+
+          // Assigner la position sauvegardée au nœud correspondant dans le nouveau graphe
+          const targetNode = newGraphData.nodes.find((n) => n.id === node.id);
+          if (targetNode) {
+            targetNode.x = nodePosition.x;
+            targetNode.y = nodePosition.y;
+            if (viewMode === "3D") targetNode.z = nodePosition.z;
+
+            // Fixer le nœud en place pendant l'initialisation du graphe
+            targetNode.fx = nodePosition.x;
+            targetNode.fy = nodePosition.y;
+            if (viewMode === "3D") targetNode.fz = nodePosition.z;
+          }
+
+          // Sauvegarder l'état actuel dans l'historique
+          setGraphHistory((prevHistory) => {
+            const updatedHistory = prevHistory.slice(0, currentHistoryIndex + 1);
+            updatedHistory.push({ graphData, selectedTriple }); // Ajouter l'état actuel du graphe et de NodeDetailsSidebar
+            return updatedHistory;
+          });
+          setCurrentHistoryIndex((prevIndex) => prevIndex + 1);
+
+
+          setGraphData(newGraphData);
+
+          // Attendre que le graphe soit stabilisé
+          fgRef.current.d3Force("center", null);
+          await new Promise((resolve) => {
+            const handleEngineStop = () => {
+              // Libérer le nœud une fois le graphe stabilisé
+              if (targetNode) {
+                targetNode.fx = undefined;
+                targetNode.fy = undefined;
+                if (viewMode === "3D") targetNode.fz = undefined;
+              }
+
+              if (viewMode === "3D") {
+                const distance = 40;
+                const distRatio =
+                  1 +
+                  distance /
+                    Math.hypot(nodePosition.x, nodePosition.y, nodePosition.z);
+
+                fgRef.current.cameraPosition(
+                  {
+                    x: nodePosition.x * distRatio,
+                    y: nodePosition.y * distRatio,
+                    z: nodePosition.z * distRatio,
+                  },
+                  targetNode,
+                  500
+                );
+              } else  {
+                // Pour 2D, on utilise zoomToFit autour du nœud
+                const distance = 100;
+                fgRef.current.centerAt(nodePosition.x, nodePosition.y, 1000);
+                fgRef.current.zoom(8, 1000);
+              }
+              fgRef.current.d3Force("center", d3.forceCenter());
+              fgRef.current.removeEventListener("engineStop", handleEngineStop);
+              resolve();
+            };
+
+            fgRef.current.addEventListener("engineStop", handleEngineStop);
+          });
+        } catch (error) {
+          console.error("Erreur lors de la récupération des triplets :", error);
+        }
       }
 
       setSelectedTriple(node);
     },
-    [viewMode]
+    [viewMode, graphData, currentHistoryIndex]
   );
 
+
+  // Fit graph to view after initial render
   const handleEngineStop = useCallback(() => {
     if (isInitialLoad && fgRef.current) {
       setIsInitialLoad(false);
     }
   }, [isInitialLoad]);
 
+
+  // Boutons Précédent et Suivant
+const goBack = () => {
+  if (currentHistoryIndex > 0) {
+    const { graphData, selectedTriple } = graphHistory[currentHistoryIndex - 1];
+    setGraphData(graphData);
+    setSelectedTriple(selectedTriple); // Récupérer l'état de NodeDetailsSidebar
+    setCurrentHistoryIndex((prevIndex) => prevIndex - 1);
+  }
+};
+
+const goForward = () => {
+  if (currentHistoryIndex < graphHistory.length - 1) {
+    const { graphData, selectedTriple } = graphHistory[currentHistoryIndex + 1];
+    setGraphData(graphData);
+    setSelectedTriple(selectedTriple); // Récupérer l'état de NodeDetailsSidebar
+    setCurrentHistoryIndex((prevIndex) => prevIndex + 1);
+  }
+};
+
   return (
     <div>
       {isLoading && <LoadingAnimation />}
+      <button className="navigation-button"
+        onClick={resetGraph}
+        style={{ position: "absolute", top: "75px", right: "10px", zIndex: 50 }}
+      >
+        Return to initial graph
+      </button>
+
+      <button className="navigation-button"
+        onClick={goBack}
+        style={{ position: "absolute", top: "110px", right: "83px", width: "70px", zIndex: 50}}
+        disabled={currentHistoryIndex <= 0}>
+        Previous
+      </button>
+      <button className="navigation-button"
+        onClick={goForward} 
+        style={{ position: "absolute", top: "110px", right: "10px", width: "70px", zIndex: 50 }}
+        disabled={currentHistoryIndex >= graphHistory.length - 1}>
+        Next
+      </button>
+
 
       {/* Options en haut à gauche */}
       <div
@@ -255,7 +375,13 @@ const GraphVisualization = ({ endpoint }) => {
 
       {/* Mode VR */}
       {viewMode === "VR" && (
-        <GraphVR graphData={graphData} onNodeClick={handleNodeClick} />
+        <GraphVR 
+          graphData={graphData} 
+          onNodeClick={handleNodeClick}
+          onBack={goBack} 
+          onForward={goForward} 
+          selectedTriple={selectedTriple} 
+        />
       )}
 
       {/* Graph legend */}
