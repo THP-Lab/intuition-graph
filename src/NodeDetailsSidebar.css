@@ -1,10 +1,9 @@
 /* Style général de la sidebar */
 .node-details-sidebar {
   position: fixed;
-  top: 50%;
+  top: 80px;
   right: 20px;
-  transform: translateY(-50%);
-  background: rgba(0, 0, 0, 0.7); /* Noir semi-transparent harmonisé */
+  background: rgba(0, 0, 0, 0.7);
   padding: 20px;
   width: 350px;
   border-radius: 10px;
@@ -12,7 +11,6 @@
   z-index: 1000;
   color: #fff;
   overflow-y: auto;
-  max-height: 80vh;
 }
 
 /* Titres et sous-titres */

@@ -8,12 +8,10 @@ import GraphLegend from "./GraphLegend";
 import GraphVR from "./GraphVR";
 import NodeDetailsSidebar from "./NodeDetailsSidebar";
 import LoadingAnimation from "./LoadingAnimation";
-import * as d3 from "d3";
 
 const GraphVisualization = ({ endpoint }) => {
   const [graphData, setGraphData] = useState({ nodes: [], links: [] });
   const [initialGraphData, setInitialGraphData] = useState(null);
-  const [previousGraphData, setPreviousGraphData] = useState(null);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
   const [viewMode, setViewMode] = useState("2D");
   const [selectedTriple, setSelectedTriple] = useState(null);
@@ -21,7 +19,7 @@ const GraphVisualization = ({ endpoint }) => {
   const [isLoading, setIsLoading] = useState(false);
   const fgRef = useRef();
   const [graphHistory, setGraphHistory] = useState([]);
-  const [currentHistoryIndex, setCurrentHistoryIndex] = useState(-1);
+  const [currentHistoryIndex, setCurrentHistoryIndex] = useState(0);
 
   // Charger les données
   useEffect(() => {
@@ -50,7 +48,6 @@ const GraphVisualization = ({ endpoint }) => {
 
   const resetGraph = () => {
     setGraphData(initialGraphData);
-    setPreviousGraphData(null);
   };
 
   // Fonction pour ajouter les créateurs au graphe
@@ -121,67 +118,27 @@ const GraphVisualization = ({ endpoint }) => {
             if (viewMode === "3D") targetNode.fz = nodePosition.z;
           }
 
+          setSelectedTriple(node);
+
           // Sauvegarder l'état actuel dans l'historique
           setGraphHistory((prevHistory) => {
-            const updatedHistory = prevHistory.slice(0, currentHistoryIndex + 1);
+            const updatedHistory = prevHistory.slice(
+              0,
+              currentHistoryIndex + 1
+            );
             updatedHistory.push({ graphData, selectedTriple }); // Ajouter l'état actuel du graphe et de NodeDetailsSidebar
             return updatedHistory;
           });
           setCurrentHistoryIndex((prevIndex) => prevIndex + 1);
 
-
           setGraphData(newGraphData);
-
-          // Attendre que le graphe soit stabilisé
-          fgRef.current.d3Force("center", null);
-          await new Promise((resolve) => {
-            const handleEngineStop = () => {
-              // Libérer le nœud une fois le graphe stabilisé
-              if (targetNode) {
-                targetNode.fx = undefined;
-                targetNode.fy = undefined;
-                if (viewMode === "3D") targetNode.fz = undefined;
-              }
-
-              if (viewMode === "3D") {
-                const distance = 40;
-                const distRatio =
-                  1 +
-                  distance /
-                    Math.hypot(nodePosition.x, nodePosition.y, nodePosition.z);
-
-                fgRef.current.cameraPosition(
-                  {
-                    x: nodePosition.x * distRatio,
-                    y: nodePosition.y * distRatio,
-                    z: nodePosition.z * distRatio,
-                  },
-                  targetNode,
-                  500
-                );
-              } else  {
-                // Pour 2D, on utilise zoomToFit autour du nœud
-                const distance = 100;
-                fgRef.current.centerAt(nodePosition.x, nodePosition.y, 1000);
-                fgRef.current.zoom(8, 1000);
-              }
-              fgRef.current.d3Force("center", d3.forceCenter());
-              fgRef.current.removeEventListener("engineStop", handleEngineStop);
-              resolve();
-            };
-
-            fgRef.current.addEventListener("engineStop", handleEngineStop);
-          });
         } catch (error) {
           console.error("Erreur lors de la récupération des triplets :", error);
         }
       }
-
-      setSelectedTriple(node);
     },
-    [viewMode, graphData, currentHistoryIndex]
+    [viewMode, graphData, currentHistoryIndex, endpoint, selectedTriple]
   );
-
 
   // Fit graph to view after initial render
   const handleEngineStop = useCallback(() => {
@@ -190,49 +147,72 @@ const GraphVisualization = ({ endpoint }) => {
     }
   }, [isInitialLoad]);
 
-
   // Boutons Précédent et Suivant
-const goBack = () => {
-  if (currentHistoryIndex > 0) {
-    const { graphData, selectedTriple } = graphHistory[currentHistoryIndex - 1];
-    setGraphData(graphData);
-    setSelectedTriple(selectedTriple); // Récupérer l'état de NodeDetailsSidebar
-    setCurrentHistoryIndex((prevIndex) => prevIndex - 1);
-  }
-};
+  const goBack = () => {
+    if (currentHistoryIndex > 0) {
+      const { graphData, selectedTriple } =
+        graphHistory[currentHistoryIndex - 1];
+      setGraphData(graphData);
+      setSelectedTriple(selectedTriple); // Récupérer l'état de NodeDetailsSidebar
+      setCurrentHistoryIndex((prevIndex) => prevIndex - 1);
+    }
+  };
 
-const goForward = () => {
-  if (currentHistoryIndex < graphHistory.length - 1) {
-    const { graphData, selectedTriple } = graphHistory[currentHistoryIndex + 1];
-    setGraphData(graphData);
-    setSelectedTriple(selectedTriple); // Récupérer l'état de NodeDetailsSidebar
-    setCurrentHistoryIndex((prevIndex) => prevIndex + 1);
-  }
-};
+  const goForward = () => {
+    if (currentHistoryIndex < graphHistory.length - 1) {
+      const { graphData, selectedTriple } =
+        graphHistory[currentHistoryIndex + 1];
+      setGraphData(graphData);
+      setSelectedTriple(selectedTriple); // Récupérer l'état de NodeDetailsSidebar
+      setCurrentHistoryIndex((prevIndex) => prevIndex + 1);
+    }
+  };
 
   return (
     <div>
       {isLoading && <LoadingAnimation />}
-      <button className="navigation-button"
+      <button
+        className="navigation-button"
         onClick={resetGraph}
-        style={{ position: "absolute", top: "75px", right: "10px", zIndex: 50 }}
+        style={{
+          position: "absolute",
+          top: "75px",
+          left: "10px",
+          zIndex: 50,
+          width: "143px",
+        }}
       >
         Return to initial graph
       </button>
 
-      <button className="navigation-button"
+      <button
+        className="navigation-button"
         onClick={goBack}
-        style={{ position: "absolute", top: "110px", right: "83px", width: "70px", zIndex: 50}}
-        disabled={currentHistoryIndex <= 0}>
+        style={{
+          position: "absolute",
+          top: "110px",
+          left: "10px",
+          width: "70px",
+          zIndex: 50,
+        }}
+        disabled={currentHistoryIndex <= 0}
+      >
         Previous
       </button>
-      <button className="navigation-button"
-        onClick={goForward} 
-        style={{ position: "absolute", top: "110px", right: "10px", width: "70px", zIndex: 50 }}
-        disabled={currentHistoryIndex >= graphHistory.length - 1}>
+      <button
+        className="navigation-button"
+        onClick={goForward}
+        style={{
+          position: "absolute",
+          top: "110px",
+          left: "83px",
+          width: "70px",
+          zIndex: 50,
+        }}
+        disabled={currentHistoryIndex >= graphHistory.length - 1}
+      >
         Next
       </button>
-
 
       {/* Options en haut à gauche */}
       <div
@@ -304,6 +284,7 @@ const goForward = () => {
             const y = node.y - fontSize / 2 - padding;
             const width = textWidth + padding * 2;
             const height = fontSize + padding * 2;
+            const bckgDimensions = [width, height];
 
             // Simple rounded rect using arcs (more performant than complex paths)
             ctx.beginPath();
@@ -337,6 +318,18 @@ const goForward = () => {
             ctx.textAlign = "center";
             ctx.textBaseline = "middle";
             ctx.fillText(label, node.x, node.y);
+
+            node.__bckgDimensions = bckgDimensions; // to re-use in nodePointerAreaPaint
+          }}
+          nodePointerAreaPaint={(node, color, ctx) => {
+            ctx.fillStyle = color;
+            const bckgDimensions = node.__bckgDimensions;
+            bckgDimensions &&
+              ctx.fillRect(
+                node.x - bckgDimensions[0] / 2,
+                node.y - bckgDimensions[1] / 2,
+                ...bckgDimensions
+              );
           }}
           linkColor={() => "#666"}
           linkDirectionalParticles={1}
@@ -363,7 +356,7 @@ const goForward = () => {
           nodeThreeObject={(node) => {
             const sprite = new SpriteText(node.label || "");
             sprite.borderRadius = 1;
-            sprite.backgroundColor = node.color + "55";
+            sprite.backgroundColor = node.color + "CC";
             sprite.padding = 1;
             sprite.color = "#fff";
             sprite.textHeight = 2;
@@ -375,12 +368,12 @@ const goForward = () => {
 
       {/* Mode VR */}
       {viewMode === "VR" && (
-        <GraphVR 
-          graphData={graphData} 
+        <GraphVR
+          graphData={graphData}
           onNodeClick={handleNodeClick}
-          onBack={goBack} 
-          onForward={goForward} 
-          selectedTriple={selectedTriple} 
+          onBack={goBack}
+          onForward={goForward}
+          selectedTriple={selectedTriple}
         />
       )}
 
