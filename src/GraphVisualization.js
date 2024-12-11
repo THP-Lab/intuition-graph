@@ -124,7 +124,7 @@ const GraphVisualization = ({ endpoint }) => {
           // Sauvegarder l'état actuel dans l'historique
           setGraphHistory((prevHistory) => {
             const updatedHistory = prevHistory.slice(0, currentHistoryIndex + 1);
-            updatedHistory.push(graphData); // Ajouter l'état actuel
+            updatedHistory.push({ graphData, selectedTriple }); // Ajouter l'état actuel du graphe et de NodeDetailsSidebar
             return updatedHistory;
           });
           setCurrentHistoryIndex((prevIndex) => prevIndex + 1);
@@ -159,13 +159,12 @@ const GraphVisualization = ({ endpoint }) => {
                   targetNode,
                   500
                 );
-              } else {
+              } else  {
                 // Pour 2D, on utilise zoomToFit autour du nœud
                 const distance = 100;
                 fgRef.current.centerAt(nodePosition.x, nodePosition.y, 1000);
                 fgRef.current.zoom(8, 1000);
               }
-
               fgRef.current.d3Force("center", d3.forceCenter());
               fgRef.current.removeEventListener("engineStop", handleEngineStop);
               resolve();
@@ -195,14 +194,18 @@ const GraphVisualization = ({ endpoint }) => {
   // Boutons Précédent et Suivant
 const goBack = () => {
   if (currentHistoryIndex > 0) {
-    setGraphData(graphHistory[currentHistoryIndex - 1]);
+    const { graphData, selectedTriple } = graphHistory[currentHistoryIndex - 1];
+    setGraphData(graphData);
+    setSelectedTriple(selectedTriple); // Récupérer l'état de NodeDetailsSidebar
     setCurrentHistoryIndex((prevIndex) => prevIndex - 1);
   }
 };
 
 const goForward = () => {
   if (currentHistoryIndex < graphHistory.length - 1) {
-    setGraphData(graphHistory[currentHistoryIndex + 1]);
+    const { graphData, selectedTriple } = graphHistory[currentHistoryIndex + 1];
+    setGraphData(graphData);
+    setSelectedTriple(selectedTriple); // Récupérer l'état de NodeDetailsSidebar
     setCurrentHistoryIndex((prevIndex) => prevIndex + 1);
   }
 };
@@ -210,22 +213,22 @@ const goForward = () => {
   return (
     <div>
       {isLoading && <LoadingAnimation />}
-      <button
+      <button className="navigation-button"
         onClick={resetGraph}
         style={{ position: "absolute", top: "75px", right: "10px", zIndex: 50 }}
       >
         Return to initial graph
       </button>
 
-      <button
+      <button className="navigation-button"
         onClick={goBack}
-        style={{ position: "absolute", top: "100px", right: "10px", zIndex: 50 }}
+        style={{ position: "absolute", top: "110px", right: "84px", zIndex: 50}}
         disabled={currentHistoryIndex <= 0}>
         Previous
       </button>
-      <button 
+      <button className="navigation-button"
         onClick={goForward} 
-        style={{ position: "absolute", top: "100px", right: "100px", zIndex: 50 }}
+        style={{ position: "absolute", top: "110px", right: "10px", zIndex: 50 }}
         disabled={currentHistoryIndex >= graphHistory.length - 1}>
         Next
       </button>
@@ -372,7 +375,13 @@ const goForward = () => {
 
       {/* Mode VR */}
       {viewMode === "VR" && (
-        <GraphVR graphData={graphData} onNodeClick={handleNodeClick} />
+        <GraphVR 
+          graphData={graphData} 
+          onNodeClick={handleNodeClick}
+          onBack={goBack} 
+          onForward={goForward} 
+          selectedTriple={selectedTriple} 
+        />
       )}
 
       {/* Graph legend */}
