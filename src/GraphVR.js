@@ -11,7 +11,7 @@ const GraphVR = ({ graphData, onNodeClick }) => {
       graph.graphData(graphData);
 
       graph
-        .nodeLabel((node) => node.name || node.id)
+        .nodeLabel((node) => node.label || node.id)
         .nodeAutoColorBy("group");
 
       // Attach click handler if provided
