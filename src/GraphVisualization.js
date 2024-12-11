@@ -222,13 +222,13 @@ const goForward = () => {
 
       <button className="navigation-button"
         onClick={goBack}
-        style={{ position: "absolute", top: "110px", right: "84px", zIndex: 50}}
+        style={{ position: "absolute", top: "110px", right: "83px", width: "70px", zIndex: 50}}
         disabled={currentHistoryIndex <= 0}>
         Previous
       </button>
       <button className="navigation-button"
         onClick={goForward} 
-        style={{ position: "absolute", top: "110px", right: "10px", zIndex: 50 }}
+        style={{ position: "absolute", top: "110px", right: "10px", width: "70px", zIndex: 50 }}
         disabled={currentHistoryIndex >= graphHistory.length - 1}>
         Next
       </button>
