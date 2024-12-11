@@ -148,52 +148,6 @@ export const fetchTriplesForNode = async (nodeId, endpoint) => {
         query Triples($where: TripleFilter) {
           triples(where: $where) {
             items {
-                id
-                label
-                subject {
-                  label
-                  id
-                  creatorId
-                  type
-                }
-                predicate {
-                  label
-                  id
-                  creatorId
-                  type
-                }
-                object {
-                  label
-                  id
-                  creatorId
-                  type
-                }
-            }
-          }
-        }
-      `;
-      variables = {
-        where: {
-          OR: [
-            {
-              subjectId: parseInt(nodeId),
-            },
-            {
-              predicateId: parseInt(nodeId)
-            },
-            {
-              objectId: parseInt(nodeId)
-            },
-          ],
-        },
-      };
-      data = await client.request(query, variables);
-      debugger
-      return data.triples.items;
-    default:
-      query = gql`
-          query Triples($where: triples_bool_exp) {
-            triples(where: $where) {
               id
               label
               subject {
@@ -216,6 +170,51 @@ export const fetchTriplesForNode = async (nodeId, endpoint) => {
               }
             }
           }
+        }
+      `;
+      variables = {
+        where: {
+          OR: [
+            {
+              subjectId: parseInt(nodeId),
+            },
+            {
+              predicateId: parseInt(nodeId),
+            },
+            {
+              objectId: parseInt(nodeId),
+            },
+          ],
+        },
+      };
+      data = await client.request(query, variables);
+      return data.triples.items;
+    default:
+      query = gql`
+        query Triples($where: triples_bool_exp) {
+          triples(where: $where) {
+            id
+            label
+            subject {
+              label
+              id
+              creatorId
+              type
+            }
+            predicate {
+              label
+              id
+              creatorId
+              type
+            }
+            object {
+              label
+              id
+              creatorId
+              type
+            }
+          }
+        }
       `;
       variables = {
         where: {
@@ -231,7 +230,7 @@ export const fetchTriplesForNode = async (nodeId, endpoint) => {
               },
             },
             {
-              creatorId: {
+              objectId: {
                 _eq: nodeId,
               },
             },
