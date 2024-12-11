@@ -11,12 +11,18 @@ import LoadingAnimation from "./LoadingAnimation";
 
 const GraphVisualization = ({ endpoint }) => {
   const [graphData, setGraphData] = useState({ nodes: [], links: [] });
+  const [filteredData, setFilteredData] = useState({ nodes: [], links: [] });
   const [isInitialLoad, setIsInitialLoad] = useState(true);
   const [viewMode, setViewMode] = useState("2D");
   const [selectedTriple, setSelectedTriple] = useState(null);
   const [showCreators, setShowCreators] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const fgRef = useRef();
+
+  // Filtres
+  const [subjectFilter, setSubjectFilter] = useState("");
+  const [predicateFilter, setPredicateFilter] = useState("");
+  const [objectFilter, setObjectFilter] = useState("");
 
   // Charger les données
   useEffect(() => {
@@ -32,6 +38,7 @@ const GraphVisualization = ({ endpoint }) => {
         }
 
         setGraphData(baseGraphData);
+        setFilteredData(baseGraphData); // Afficher tout initialement
       } catch (error) {
         console.error("Error loading graph data:", error);
       } finally {
@@ -40,9 +47,8 @@ const GraphVisualization = ({ endpoint }) => {
     };
 
     loadData();
-  }, [showCreators, endpoint]); // Reload when endpoint changes
+  }, [showCreators, endpoint]);
 
-  // Fonction pour ajouter les créateurs au graphe
   const enhanceGraphDataWithCreators = (graphData, triples) => {
     const creatorNodes = [];
     const creatorLinks = [];
@@ -52,7 +58,6 @@ const GraphVisualization = ({ endpoint }) => {
 
       entities.forEach((entity) => {
         if (entity.creatorId) {
-          // Ajouter un nœud pour le créateur
           if (
             !creatorNodes.find(
               (node) => node.id === `creator-${entity.creatorId}`
@@ -66,7 +71,6 @@ const GraphVisualization = ({ endpoint }) => {
             });
           }
 
-          // Ajouter un lien entre l'entité et son créateur
           creatorLinks.push({
             source: `creator-${entity.creatorId}`,
             target: entity.id,
@@ -80,6 +84,31 @@ const GraphVisualization = ({ endpoint }) => {
       nodes: [...graphData.nodes, ...creatorNodes],
       links: [...graphData.links, ...creatorLinks],
     };
+  };
+
+  const applyFilters = () => {
+    const filteredLinks = graphData.links.filter((link) => {
+      const subjectMatches =
+        !subjectFilter ||
+        link.source.label.toLowerCase().includes(subjectFilter.toLowerCase());
+      const predicateMatches =
+        !predicateFilter ||
+        link.label.toLowerCase().includes(predicateFilter.toLowerCase());
+      const objectMatches =
+        !objectFilter ||
+        link.target.label.toLowerCase().includes(objectFilter.toLowerCase());
+
+      return subjectMatches && predicateMatches && objectMatches;
+    });
+
+    const filteredNodeIds = new Set(
+      filteredLinks.flatMap((link) => [link.source.id, link.target.id])
+    );
+    const filteredNodes = graphData.nodes.filter((node) =>
+      filteredNodeIds.has(node.id)
+    );
+
+    setFilteredData({ nodes: filteredNodes, links: filteredLinks });
   };
 
   const handleNodeClick = useCallback(
@@ -114,7 +143,7 @@ const GraphVisualization = ({ endpoint }) => {
     <div>
       {isLoading && <LoadingAnimation />}
 
-      {/* Options en haut à gauche */}
+      {/* Barre de navigation horizontale */}
       <div
         style={{
           position: "absolute",
@@ -128,9 +157,10 @@ const GraphVisualization = ({ endpoint }) => {
           color: "#fff",
           padding: "10px",
           borderRadius: "4px",
+          width: "auto",
         }}
       >
-        {/* Toggle pour le mode de vue */}
+        {/* View mode toggle */}
         <label htmlFor="viewMode" style={{ fontSize: "14px" }}>
           View Mode:
         </label>
@@ -151,8 +181,8 @@ const GraphVisualization = ({ endpoint }) => {
           <option value="VR">VR</option>
         </select>
 
-        {/* Toggle pour afficher les créateurs */}
-        <label style={{ fontSize: "14px", marginLeft: "10px" }}>
+        {/* Show creators toggle */}
+        <label style={{ fontSize: "14px" }}>
           Show Creators
           <input
             type="checkbox"
@@ -161,59 +191,70 @@ const GraphVisualization = ({ endpoint }) => {
             style={{ marginLeft: "8px" }}
           />
         </label>
+
+        {/* Filtres alignés horizontalement sous l'endpoint */}
+        <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+          <input
+            type="text"
+            value={subjectFilter}
+            onChange={(e) => {
+              setSubjectFilter(e.target.value);
+              applyFilters();
+            }}
+            placeholder="Subject"
+            style={{
+              padding: "5px",
+              borderRadius: "4px",
+              border: "1px solid #ccc",
+              fontSize: "14px",
+              width: "100px",
+            }}
+          />
+          <input
+            type="text"
+            value={predicateFilter}
+            onChange={(e) => {
+              setPredicateFilter(e.target.value);
+              applyFilters();
+            }}
+            placeholder="Predicate"
+            style={{
+              padding: "5px",
+              borderRadius: "4px",
+              border: "1px solid #ccc",
+              fontSize: "14px",
+              width: "100px",
+            }}
+          />
+          <input
+            type="text"
+            value={objectFilter}
+            onChange={(e) => {
+              setObjectFilter(e.target.value);
+              applyFilters();
+            }}
+            placeholder="Object"
+            style={{
+              padding: "5px",
+              borderRadius: "4px",
+              border: "1px solid #ccc",
+              fontSize: "14px",
+              width: "100px",
+            }}
+          />
+        </div>
       </div>
 
       {/* Graphique 2D */}
       {viewMode === "2D" && (
         <ForceGraph2D
           ref={(el) => (fgRef.current = el)}
-          graphData={graphData}
+          graphData={filteredData}
           nodeCanvasObject={(node, ctx, globalScale) => {
             const label = node.label || "";
             const fontSize = 12 / globalScale;
             ctx.font = `${fontSize}px Sans-Serif`;
-
-            // Measure text width for background
-            const textWidth = ctx.measureText(label).width;
-            const padding = 10 / globalScale; // Scale padding with zoom
-            const radius = 5 / globalScale; // Scale border radius with zoom
-
-            // Draw rounded rectangle backgrwound
-            ctx.fillStyle = node.color + "CC";
-            const x = node.x - textWidth / 2 - padding;
-            const y = node.y - fontSize / 2 - padding;
-            const width = textWidth + padding * 2;
-            const height = fontSize + padding * 2;
-
-            // Simple rounded rect using arcs (more performant than complex paths)
-            ctx.beginPath();
-            ctx.arc(x + radius, y + radius, radius, Math.PI, 1.5 * Math.PI);
-            ctx.arc(
-              x + width - radius,
-              y + radius,
-              radius,
-              1.5 * Math.PI,
-              2 * Math.PI
-            );
-            ctx.arc(
-              x + width - radius,
-              y + height - radius,
-              radius,
-              0,
-              0.5 * Math.PI
-            );
-            ctx.arc(
-              x + radius,
-              y + height - radius,
-              radius,
-              0.5 * Math.PI,
-              Math.PI
-            );
-            ctx.closePath();
-            ctx.fill();
-
-            // Draw text
-            ctx.fillStyle = "#fff";
+            ctx.fillStyle = node.color;
             ctx.textAlign = "center";
             ctx.textBaseline = "middle";
             ctx.fillText(label, node.x, node.y);
@@ -232,7 +273,7 @@ const GraphVisualization = ({ endpoint }) => {
       {viewMode === "3D" && (
         <ForceGraph3D
           ref={(el) => (fgRef.current = el)}
-          graphData={graphData}
+          graphData={filteredData}
           controlType="fly"
           nodeLabel="label"
           onNodeClick={handleNodeClick}
@@ -255,7 +296,7 @@ const GraphVisualization = ({ endpoint }) => {
 
       {/* Mode VR */}
       {viewMode === "VR" && (
-        <GraphVR graphData={graphData} onNodeClick={handleNodeClick} />
+        <GraphVR graphData={filteredData} onNodeClick={handleNodeClick} />
       )}
 
       {/* Graph legend */}
