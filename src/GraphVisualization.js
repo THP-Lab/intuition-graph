@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback, useRef } from "react";
 import { ForceGraph2D, ForceGraph3D } from "react-force-graph";
 import SpriteText from "three-spritetext";
-import { fetchTriples, fetchTriplesForNode } from "./api";
+import { fetchTriples, fetchTriplesForNode } from "./api/api";
 import { transformToGraphData } from "./graphData";
 import { NODE_COLORS } from "./nodeColors";
 import GraphLegend from "./GraphLegend";
@@ -13,7 +13,6 @@ import * as d3 from "d3";
 const GraphVisualization = ({ endpoint }) => {
   const [graphData, setGraphData] = useState({ nodes: [], links: [] });
   const [initialGraphData, setInitialGraphData] = useState(null);
-  const [previousGraphData, setPreviousGraphData] = useState(null);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
   const [viewMode, setViewMode] = useState("2D");
   const [selectedTriple, setSelectedTriple] = useState(null);
@@ -50,7 +49,6 @@ const GraphVisualization = ({ endpoint }) => {
 
   const resetGraph = () => {
     setGraphData(initialGraphData);
-    setPreviousGraphData(null);
   };
 
   // Fonction pour ajouter les créateurs au graphe
@@ -161,7 +159,6 @@ const GraphVisualization = ({ endpoint }) => {
                 );
               } else  {
                 // Pour 2D, on utilise zoomToFit autour du nœud
-                const distance = 100;
                 fgRef.current.centerAt(nodePosition.x, nodePosition.y, 1000);
                 fgRef.current.zoom(8, 1000);
               }
@@ -169,8 +166,6 @@ const GraphVisualization = ({ endpoint }) => {
               fgRef.current.removeEventListener("engineStop", handleEngineStop);
               resolve();
             };
-
-            fgRef.current.addEventListener("engineStop", handleEngineStop);
           });
         } catch (error) {
           console.error("Erreur lors de la récupération des triplets :", error);
