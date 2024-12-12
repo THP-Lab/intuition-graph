@@ -11,6 +11,7 @@ import LoadingAnimation from "./LoadingAnimation";
 
 const GraphVisualization = ({ endpoint }) => {
   const [graphData, setGraphData] = useState({ nodes: [], links: [] });
+
   const [initialGraphData, setInitialGraphData] = useState(null);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
   const [viewMode, setViewMode] = useState("2D");
@@ -20,6 +21,11 @@ const GraphVisualization = ({ endpoint }) => {
   const fgRef = useRef();
   const [graphHistory, setGraphHistory] = useState([]);
   const [currentHistoryIndex, setCurrentHistoryIndex] = useState(0);
+
+  // Filtres
+  const [subjectFilter, setSubjectFilter] = useState("");
+  const [predicateFilter, setPredicateFilter] = useState("");
+  const [objectFilter, setObjectFilter] = useState("");
 
   // Charger les données
   useEffect(() => {
@@ -168,6 +174,84 @@ const GraphVisualization = ({ endpoint }) => {
     }
   };
 
+  const applyFilters = () => {
+    console.log("Applying filters...");
+    console.log("Subject Filter:", subjectFilter);
+    console.log("Predicate Filter:", predicateFilter);
+    console.log("Object Filter:", objectFilter);
+
+    // Vérification des liens pour déboguer
+    console.log("Links before filtering:", graphData.links);
+
+    const filteredLinks = graphData.links.filter((link) => {
+      const subjectMatches =
+        !subjectFilter ||
+        (typeof link.source === "string"
+          ? link.source.toLowerCase().includes(subjectFilter.toLowerCase())
+          : link.source?.label
+              ?.toLowerCase()
+              .includes(subjectFilter.toLowerCase()));
+
+      const predicateMatches =
+        !predicateFilter ||
+        (typeof link.label === "string"
+          ? link.label.toLowerCase().includes(predicateFilter.toLowerCase())
+          : false) || // Filtrage sur le prédicat
+        (typeof link.source === "string"
+          ? link.source.toLowerCase().includes(predicateFilter.toLowerCase())
+          : link.source?.label
+              ?.toLowerCase()
+              .includes(predicateFilter.toLowerCase())) || // Filtrage aussi sur le sujet (source)
+        (typeof link.target === "string"
+          ? link.target.toLowerCase().includes(predicateFilter.toLowerCase())
+          : link.target?.label
+              ?.toLowerCase()
+              .includes(predicateFilter.toLowerCase())); // Filtrage aussi sur l'objet (target)
+
+      const objectMatches =
+        !objectFilter ||
+        (typeof link.target === "string"
+          ? link.target.toLowerCase().includes(objectFilter.toLowerCase())
+          : link.target?.label
+              ?.toLowerCase()
+              .includes(objectFilter.toLowerCase()));
+
+      return subjectMatches && predicateMatches && objectMatches;
+    });
+
+    // Déboguer les liens filtrés
+    console.log("Filtered Links:", filteredLinks);
+
+    // Identifiez les nœuds impliqués dans les liens filtrés
+    const filteredNodeIds = new Set(
+      filteredLinks.flatMap((link) => [
+        typeof link.source === "string" ? link.source : link.source?.id,
+        typeof link.target === "string" ? link.target : link.target?.id,
+      ])
+    );
+
+    // Filtrer les nœuds pour ne garder que ceux qui sont impliqués dans les liens filtrés
+    const filteredNodes = graphData.nodes.filter((node) =>
+      filteredNodeIds.has(node.id)
+    );
+
+    // Déboguer les nœuds filtrés
+    console.log("Filtered Nodes:", filteredNodes);
+
+    // Mettre à jour l'état avec les données filtrées
+    setGraphData({ nodes: filteredNodes, links: filteredLinks });
+  };
+
+  const resetFilters = () => {
+    setSubjectFilter("");
+    setPredicateFilter("");
+    setObjectFilter("");
+
+    if (graphHistory.length)
+      setGraphData(graphHistory[graphHistory.length - 1].graphData);
+    else setGraphData(initialGraphData);
+  };
+
   return (
     <div>
       {isLoading && <LoadingAnimation />}
@@ -261,6 +345,58 @@ const GraphVisualization = ({ endpoint }) => {
             style={{ marginLeft: "8px" }}
           />
         </label>
+        {/* Filtres alignés horizontalement sous l'endpoint */}
+        <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+          <input
+            type="text"
+            value={subjectFilter}
+            onChange={(e) => {
+              setSubjectFilter(e.target.value);
+              applyFilters();
+            }}
+            placeholder="Subject"
+            style={{
+              padding: "5px",
+              borderRadius: "4px",
+              border: "1px solid #ccc",
+              fontSize: "14px",
+              width: "100px",
+            }}
+          />
+          <input
+            type="text"
+            value={predicateFilter}
+            onChange={(e) => {
+              setPredicateFilter(e.target.value);
+              applyFilters();
+            }}
+            placeholder="Predicate"
+            style={{
+              padding: "5px",
+              borderRadius: "4px",
+              border: "1px solid #ccc",
+              fontSize: "14px",
+              width: "100px",
+            }}
+          />
+          <input
+            type="text"
+            value={objectFilter}
+            onChange={(e) => {
+              setObjectFilter(e.target.value);
+              applyFilters();
+            }}
+            placeholder="Object"
+            style={{
+              padding: "5px",
+              borderRadius: "4px",
+              border: "1px solid #ccc",
+              fontSize: "14px",
+              width: "100px",
+            }}
+          />
+          <button onClick={resetFilters}>reset</button>
+        </div>
       </div>
 
       {/* Graphique 2D */}
