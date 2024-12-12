@@ -86,30 +86,75 @@ const GraphVisualization = ({ endpoint }) => {
     };
   };
 
-  const applyFilters = () => {
-    const filteredLinks = graphData.links.filter((link) => {
-      const subjectMatches =
-        !subjectFilter ||
-        link.source.label.toLowerCase().includes(subjectFilter.toLowerCase());
-      const predicateMatches =
-        !predicateFilter ||
-        link.label.toLowerCase().includes(predicateFilter.toLowerCase());
-      const objectMatches =
-        !objectFilter ||
-        link.target.label.toLowerCase().includes(objectFilter.toLowerCase());
+  // Fonction pour appliquer les filtres
+const applyFilters = () => {
+  console.log("Applying filters...");
+  console.log("Subject Filter:", subjectFilter);
+  console.log("Predicate Filter:", predicateFilter);
+  console.log("Object Filter:", objectFilter);
 
-      return subjectMatches && predicateMatches && objectMatches;
-    });
+  // Vérification des liens pour déboguer
+  console.log("Links before filtering:", graphData.links);
 
-    const filteredNodeIds = new Set(
-      filteredLinks.flatMap((link) => [link.source.id, link.target.id])
-    );
-    const filteredNodes = graphData.nodes.filter((node) =>
-      filteredNodeIds.has(node.id)
-    );
+  const filteredLinks = graphData.links.filter((link) => {
+    const subjectMatches =
+      !subjectFilter ||
+      (typeof link.source === "string"
+        ? link.source.toLowerCase().includes(subjectFilter.toLowerCase())
+        : link.source?.label
+            ?.toLowerCase()
+            .includes(subjectFilter.toLowerCase()));
 
-    setFilteredData({ nodes: filteredNodes, links: filteredLinks });
-  };
+    const predicateMatches =
+      !predicateFilter ||
+      (typeof link.label === "string"
+        ? link.label.toLowerCase().includes(predicateFilter.toLowerCase())
+        : false) ||  // Filtrage sur le prédicat
+      (typeof link.source === "string"
+        ? link.source.toLowerCase().includes(predicateFilter.toLowerCase())
+        : link.source?.label
+            ?.toLowerCase()
+            .includes(predicateFilter.toLowerCase())) ||  // Filtrage aussi sur le sujet (source)
+      (typeof link.target === "string"
+        ? link.target.toLowerCase().includes(predicateFilter.toLowerCase())
+        : link.target?.label
+            ?.toLowerCase()
+            .includes(predicateFilter.toLowerCase()));  // Filtrage aussi sur l'objet (target)
+
+    const objectMatches =
+      !objectFilter ||
+      (typeof link.target === "string"
+        ? link.target.toLowerCase().includes(objectFilter.toLowerCase())
+        : link.target?.label
+            ?.toLowerCase()
+            .includes(objectFilter.toLowerCase()));
+
+    return subjectMatches && predicateMatches && objectMatches;
+  });
+
+  // Déboguer les liens filtrés
+  console.log("Filtered Links:", filteredLinks);
+
+  // Identifiez les nœuds impliqués dans les liens filtrés
+  const filteredNodeIds = new Set(
+    filteredLinks.flatMap((link) => [
+      typeof link.source === "string" ? link.source : link.source?.id,
+      typeof link.target === "string" ? link.target : link.target?.id,
+    ])
+  );
+
+  // Filtrer les nœuds pour ne garder que ceux qui sont impliqués dans les liens filtrés
+  const filteredNodes = graphData.nodes.filter((node) =>
+    filteredNodeIds.has(node.id)
+  );
+
+  // Déboguer les nœuds filtrés
+  console.log("Filtered Nodes:", filteredNodes);
+
+  // Mettre à jour l'état avec les données filtrées
+  setFilteredData({ nodes: filteredNodes, links: filteredLinks });
+};
+
 
   const handleNodeClick = useCallback(
     async (node) => {
