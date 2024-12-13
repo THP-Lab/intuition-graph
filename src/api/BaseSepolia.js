@@ -134,3 +134,82 @@ export const fetchTriplesForNode = async (nodeId, endpoint = "baseSepolia") => {
     data = await client.request(query, variables);
     return data.triples;
 };
+
+// Search Triples
+export const searchTriples = async (filters, endpoint = "baseSepolia") => {
+    const client = createClient(endpoint);
+    const query = gql`
+        query SearchTriples($where: triples_bool_exp) {
+          triples(where: $where) {
+            id
+            subject {
+              label
+              id
+              creatorId
+              type
+            }
+            predicate {
+              label
+              id
+              creatorId
+              type
+            }
+            object {
+              label
+              id
+              creatorId
+              type
+            }
+          }
+        }
+    `;
+
+    const where = {
+        _and: []
+    };
+
+    if (filters.subject) {
+        where._and.push({
+            subject: {
+                label: {
+                    _ilike: `%${filters.subject}%`
+                }
+            }
+        });
+    }
+
+    if (filters.predicate) {
+        where._and.push({
+            predicate: {
+                label: {
+                    _ilike: `%${filters.predicate}%`
+                }
+            }
+        });
+    }
+
+    if (filters.object) {
+        where._and.push({
+            object: {
+                label: {
+                    _ilike: `%${filters.object}%`
+                }
+            }
+        });
+    }
+
+    const variables = {
+        where: where._and.length > 0 ? where : {}
+    };
+
+    console.log("Executing search query with variables:", variables);
+
+    try {
+        const data = await client.request(query, variables);
+        console.log("Search query response:", data);
+        return data.triples;
+    } catch (error) {
+        console.error("Error executing search query:", error);
+        throw error;
+    }
+};

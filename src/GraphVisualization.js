@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback, useRef } from "react";
 import { ForceGraph2D, ForceGraph3D } from "react-force-graph";
 import SpriteText from "three-spritetext";
-import { fetchTriples, fetchTriplesForNode } from "./api";
+import { fetchTriples, fetchTriplesForNode, searchTriples } from "./api";
 import { transformToGraphData } from "./graphData";
 import { NODE_COLORS } from "./nodeColors";
 import GraphLegend from "./GraphLegend";
@@ -9,10 +9,8 @@ import GraphVR from "./GraphVR";
 import NodeDetailsSidebar from "./NodeDetailsSidebar";
 import LoadingAnimation from "./LoadingAnimation";
 
-// Rest of the file remains exactly the same as before
 const GraphVisualization = ({ endpoint }) => {
   const [graphData, setGraphData] = useState({ nodes: [], links: [] });
-
   const [initialGraphData, setInitialGraphData] = useState(null);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
   const [viewMode, setViewMode] = useState("2D");
@@ -22,41 +20,16 @@ const GraphVisualization = ({ endpoint }) => {
   const fgRef = useRef();
   const [graphHistory, setGraphHistory] = useState([]);
   const [currentHistoryIndex, setCurrentHistoryIndex] = useState(0);
+  const searchTimeoutRef = useRef(null);
 
   // Filtres
   const [subjectFilter, setSubjectFilter] = useState("");
   const [predicateFilter, setPredicateFilter] = useState("");
   const [objectFilter, setObjectFilter] = useState("");
+  const [isSearching, setIsSearching] = useState(false);
+  const [shouldSearch, setShouldSearch] = useState(false);
 
-  useEffect(() => {
-    const loadData = async () => {
-      setIsLoading(true);
-      try {
-        const triples = await fetchTriples(endpoint);
-        let baseGraphData = transformToGraphData(triples);
-
-        if (showCreators) {
-          baseGraphData = enhanceGraphDataWithCreators(baseGraphData, triples);
-        }
-
-        setGraphData(baseGraphData);
-        setInitialGraphData(baseGraphData);
-      } catch (error) {
-        console.error("Error loading graph data:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    loadData();
-  }, [showCreators, endpoint]);
-
-  const resetGraph = () => {
-    setGraphData(initialGraphData);
-    setSelectedTriple(null);
-  };
-
-  const enhanceGraphDataWithCreators = (graphData, triples) => {
+  const enhanceGraphDataWithCreators = useCallback((graphData, triples) => {
     const creatorNodes = [];
     const creatorLinks = [];
 
@@ -87,10 +60,42 @@ const GraphVisualization = ({ endpoint }) => {
       nodes: [...graphData.nodes, ...creatorNodes],
       links: [...graphData.links, ...creatorLinks],
     };
-  };
+  }, []);
+
+  useEffect(() => {
+    const loadData = async () => {
+      setIsLoading(true);
+      try {
+        const triples = await fetchTriples(endpoint);
+        let baseGraphData = transformToGraphData(triples);
+
+        if (showCreators) {
+          baseGraphData = enhanceGraphDataWithCreators(baseGraphData, triples);
+        }
+
+        setGraphData(baseGraphData);
+        setInitialGraphData(baseGraphData);
+      } catch (error) {
+        console.error("Error loading graph data:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadData();
+  }, [showCreators, endpoint, enhanceGraphDataWithCreators]);
+
+  const resetGraph = useCallback(() => {
+    setGraphData(initialGraphData);
+    setSelectedTriple(null);
+    setSubjectFilter("");
+    setPredicateFilter("");
+    setObjectFilter("");
+    setShouldSearch(false);
+  }, [initialGraphData]);
 
   const handleNodeClick = useCallback(async (node) => {
-    console.log("Node clicked:", node); // Debug log
+    console.log("Node clicked:", node);
     setSelectedTriple(node);
 
     if (fgRef.current) {
@@ -123,7 +128,6 @@ const GraphVisualization = ({ endpoint }) => {
         setCurrentHistoryIndex((prevIndex) => prevIndex + 1);
 
         setGraphData(newGraphData);
-
       } catch (error) {
         console.error("Error fetching triples:", error);
       }
@@ -136,106 +140,125 @@ const GraphVisualization = ({ endpoint }) => {
     }
   }, [isInitialLoad]);
 
-  const goBack = () => {
+  const goBack = useCallback(() => {
     if (currentHistoryIndex > 0) {
       const { graphData, selectedTriple } = graphHistory[currentHistoryIndex - 1];
       setGraphData(graphData);
       setSelectedTriple(selectedTriple);
       setCurrentHistoryIndex((prevIndex) => prevIndex - 1);
     }
-  };
+  }, [currentHistoryIndex, graphHistory]);
 
-  const goForward = () => {
+  const goForward = useCallback(() => {
     if (currentHistoryIndex < graphHistory.length - 1) {
-      const { graphData, selectedTriple } =
-        graphHistory[currentHistoryIndex + 1];
+      const { graphData, selectedTriple } = graphHistory[currentHistoryIndex + 1];
       setGraphData(graphData);
-      setSelectedTriple(selectedTriple); // Récupérer l'état de NodeDetailsSidebar
+      setSelectedTriple(selectedTriple);
       setCurrentHistoryIndex((prevIndex) => prevIndex + 1);
     }
-  };
+  }, [currentHistoryIndex, graphHistory]);
 
-  const applyFilters = () => {
-    console.log("Applying filters...");
-    console.log("Subject Filter:", subjectFilter);
-    console.log("Predicate Filter:", predicateFilter);
-    console.log("Object Filter:", objectFilter);
+  const applyFilters = useCallback(async () => {
+    if (!shouldSearch) return;
 
-    // Vérification des liens pour déboguer
-    console.log("Links before filtering:", graphData.links);
+    console.log("Applying filters:", { subjectFilter, predicateFilter, objectFilter });
+    
+    if (!subjectFilter && !predicateFilter && !objectFilter) {
+      resetGraph();
+      return;
+    }
 
-    const filteredLinks = graphData.links.filter((link) => {
-      const subjectMatches =
-        !subjectFilter ||
-        (typeof link.source === "string"
-          ? link.source.toLowerCase().includes(subjectFilter.toLowerCase())
-          : link.source?.label
-              ?.toLowerCase()
-              .includes(subjectFilter.toLowerCase()));
+    setIsSearching(true);
+    try {
+      const filters = {
+        subject: subjectFilter,
+        predicate: predicateFilter,
+        object: objectFilter
+      };
 
-      const predicateMatches =
-        !predicateFilter ||
-        (typeof link.label === "string"
-          ? link.label.toLowerCase().includes(predicateFilter.toLowerCase())
-          : false) || // Filtrage sur le prédicat
-        (typeof link.source === "string"
-          ? link.source.toLowerCase().includes(predicateFilter.toLowerCase())
-          : link.source?.label
-              ?.toLowerCase()
-              .includes(predicateFilter.toLowerCase())) || // Filtrage aussi sur le sujet (source)
-        (typeof link.target === "string"
-          ? link.target.toLowerCase().includes(predicateFilter.toLowerCase())
-          : link.target?.label
-              ?.toLowerCase()
-              .includes(predicateFilter.toLowerCase())); // Filtrage aussi sur l'objet (target)
+      console.log("Sending search request with filters:", filters);
+      const searchResults = await searchTriples(filters, endpoint);
+      console.log("Search results:", searchResults);
 
-      const objectMatches =
-        !objectFilter ||
-        (typeof link.target === "string"
-          ? link.target.toLowerCase().includes(objectFilter.toLowerCase())
-          : link.target?.label
-              ?.toLowerCase()
-              .includes(objectFilter.toLowerCase()));
+      if (!searchResults || searchResults.length === 0) {
+        console.log("No results found");
+        setGraphData({ nodes: [], links: [] });
+        return;
+      }
 
-      return subjectMatches && predicateMatches && objectMatches;
-    });
+      const newGraphData = transformToGraphData(searchResults);
+      console.log("Transformed graph data:", newGraphData);
 
-    // Déboguer les liens filtrés
-    console.log("Filtered Links:", filteredLinks);
+      if (showCreators) {
+        const enhancedData = enhanceGraphDataWithCreators(newGraphData, searchResults);
+        console.log("Enhanced graph data with creators:", enhancedData);
+        setGraphData(enhancedData);
+      } else {
+        setGraphData(newGraphData);
+      }
 
-    // Identifiez les nœuds impliqués dans les liens filtrés
-    const filteredNodeIds = new Set(
-      filteredLinks.flatMap((link) => [
-        typeof link.source === "string" ? link.source : link.source?.id,
-        typeof link.target === "string" ? link.target : link.target?.id,
-      ])
-    );
+      setGraphHistory((prevHistory) => {
+        const updatedHistory = prevHistory.slice(0, currentHistoryIndex + 1);
+        updatedHistory.push({ graphData: newGraphData, selectedTriple: null });
+        return updatedHistory;
+      });
+      setCurrentHistoryIndex((prevIndex) => prevIndex + 1);
+    } catch (error) {
+      console.error("Error searching triples:", error);
+    } finally {
+      setIsSearching(false);
+      setShouldSearch(false);
+    }
+  }, [subjectFilter, predicateFilter, objectFilter, endpoint, showCreators, enhanceGraphDataWithCreators, resetGraph, currentHistoryIndex, shouldSearch]);
 
-    // Filtrer les nœuds pour ne garder que ceux qui sont impliqués dans les liens filtrés
-    const filteredNodes = graphData.nodes.filter((node) =>
-      filteredNodeIds.has(node.id)
-    );
-
-    // Déboguer les nœuds filtrés
-    console.log("Filtered Nodes:", filteredNodes);
-
-    // Mettre à jour l'état avec les données filtrées
-    setGraphData({ nodes: filteredNodes, links: filteredLinks });
-  };
-
-  const resetFilters = () => {
+  const resetFilters = useCallback(() => {
     setSubjectFilter("");
     setPredicateFilter("");
     setObjectFilter("");
+    setShouldSearch(false);
+    resetGraph();
+  }, [resetGraph]);
 
-    if (graphHistory.length)
-      setGraphData(graphHistory[graphHistory.length - 1].graphData);
-    else setGraphData(initialGraphData);
-  };
+  // Handle search input changes
+  const handleSearchInput = useCallback((type, value) => {
+    console.log(`Search input changed - type: ${type}, value: ${value}`);
+    
+    // Clear any existing timeout
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+
+    // Update the appropriate filter
+    switch (type) {
+      case 'subject':
+        setSubjectFilter(value);
+        break;
+      case 'predicate':
+        setPredicateFilter(value);
+        break;
+      case 'object':
+        setObjectFilter(value);
+        break;
+      default:
+        break;
+    }
+
+    // Set a new timeout
+    searchTimeoutRef.current = setTimeout(() => {
+      setShouldSearch(true);
+    }, 500);
+  }, []);
+
+  // Effect for handling search
+  useEffect(() => {
+    if (shouldSearch) {
+      applyFilters();
+    }
+  }, [shouldSearch, applyFilters]);
 
   return (
     <div>
-      {isLoading && <LoadingAnimation />}
+      {(isLoading || isSearching) && <LoadingAnimation />}
       <button
         className="navigation-button"
         onClick={resetGraph}
@@ -316,10 +339,7 @@ const GraphVisualization = ({ endpoint }) => {
           <input
             type="text"
             value={subjectFilter}
-            onChange={(e) => {
-              setSubjectFilter(e.target.value);
-              applyFilters();
-            }}
+            onChange={(e) => handleSearchInput('subject', e.target.value)}
             placeholder="Subject"
             style={{
               padding: "5px",
@@ -332,10 +352,7 @@ const GraphVisualization = ({ endpoint }) => {
           <input
             type="text"
             value={predicateFilter}
-            onChange={(e) => {
-              setPredicateFilter(e.target.value);
-              applyFilters();
-            }}
+            onChange={(e) => handleSearchInput('predicate', e.target.value)}
             placeholder="Predicate"
             style={{
               padding: "5px",
@@ -348,10 +365,7 @@ const GraphVisualization = ({ endpoint }) => {
           <input
             type="text"
             value={objectFilter}
-            onChange={(e) => {
-              setObjectFilter(e.target.value);
-              applyFilters();
-            }}
+            onChange={(e) => handleSearchInput('object', e.target.value)}
             placeholder="Object"
             style={{
               padding: "5px",
@@ -398,7 +412,7 @@ const GraphVisualization = ({ endpoint }) => {
             ctx.textBaseline = "middle";
             ctx.fillText(label, node.x, node.y);
 
-            node.__bckgDimensions = bckgDimensions; // to re-use in nodePointerAreaPaint
+            node.__bckgDimensions = bckgDimensions;
           }}
           nodePointerAreaPaint={(node, color, ctx) => {
             ctx.fillStyle = color;

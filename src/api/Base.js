@@ -126,3 +126,74 @@ export const fetchTriplesForNode = async (nodeId, endpoint) => {
   data = await client.request(query, variables);
   return data.triples.items;
 };
+
+export const searchTriples = async (filters, endpoint) => {
+  const client = createClient(endpoint);
+  const query = gql`
+    query SearchTriples($where: TripleFilter) {
+      triples(where: $where) {
+        items {
+          id
+          subject {
+            label
+            id
+            creatorId
+            type
+          }
+          predicate {
+            label
+            id
+            creatorId
+            type
+          }
+          object {
+            label
+            id
+            creatorId
+            type
+          }
+        }
+      }
+    }
+  `;
+
+  const where = {
+    AND: []
+  };
+
+  if (filters.subject) {
+    where.AND.push({
+      subject: {
+        label_contains: filters.subject
+      }
+    });
+  }
+
+  if (filters.predicate) {
+    where.AND.push({
+      predicate: {
+        label_contains: filters.predicate
+      }
+    });
+  }
+
+  if (filters.object) {
+    where.AND.push({
+      object: {
+        label_contains: filters.object
+      }
+    });
+  }
+
+  const variables = {
+    where: where.AND.length > 0 ? where : undefined
+  };
+
+  try {
+    const data = await client.request(query, variables);
+    return data.triples.items;
+  } catch (error) {
+    console.error("Error searching triples:", error);
+    throw error;
+  }
+};

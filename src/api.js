@@ -69,3 +69,14 @@ export const fetchAtomDetails = async (atomId, endpoint = "base") => {
     throw error;
   }
 };
+
+// Unified searchTriples function
+export const searchTriples = async (filters, endpoint = "base") => {
+  const module = getModuleForEndpoint(endpoint);
+  try {
+    return module.searchTriples(filters, endpoint);
+  } catch (error) {
+    console.error(`Error searching triples with endpoint ${endpoint}:`, error);
+    throw error;
+  }
+};
