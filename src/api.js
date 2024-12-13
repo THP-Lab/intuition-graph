@@ -15,7 +15,7 @@ export const ENDPOINTS = {
     module: BaseSepolia,
   },
   base: {
-    url: "https://i7n.app/gql",
+    url: "https://api.i7n.app/v1/graphql",
     displayName: "Base Mainnet",
     module: Base,
   },
@@ -54,7 +54,10 @@ export const fetchTriplesForNode = async (nodeId, endpoint = "base") => {
   try {
     return module.fetchTriplesForNode(nodeId, endpoint);
   } catch (error) {
-    console.error(`Error fetching triples for node ${nodeId} with endpoint ${endpoint}:`, error);
+    console.error(
+      `Error fetching triples for node ${nodeId} with endpoint ${endpoint}:`,
+      error
+    );
     throw error;
   }
 };
@@ -65,7 +68,10 @@ export const fetchAtomDetails = async (atomId, endpoint = "base") => {
   try {
     return module.fetchAtomDetails(atomId, endpoint);
   } catch (error) {
-    console.error(`Error fetching atom details for ${atomId} with endpoint ${endpoint}:`, error);
+    console.error(
+      `Error fetching atom details for ${atomId} with endpoint ${endpoint}:`,
+      error
+    );
     throw error;
   }
 };

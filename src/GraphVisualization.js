@@ -38,7 +38,11 @@ const GraphVisualization = ({ endpoint }) => {
 
       entities.forEach((entity) => {
         if (entity.creatorId) {
-          if (!creatorNodes.find((node) => node.id === `creator-${entity.creatorId}`)) {
+          if (
+            !creatorNodes.find(
+              (node) => node.id === `creator-${entity.creatorId}`
+            )
+          ) {
             creatorNodes.push({
               id: `creator-${entity.creatorId}`,
               label: `${entity.creatorId}`,
@@ -94,45 +98,51 @@ const GraphVisualization = ({ endpoint }) => {
     setShouldSearch(false);
   }, [initialGraphData]);
 
-  const handleNodeClick = useCallback(async (node) => {
-    console.log("Node clicked:", node);
-    setSelectedTriple(node);
+  const handleNodeClick = useCallback(
+    async (node) => {
+      console.log("Node clicked:", node);
+      setSelectedTriple(node);
 
-    if (fgRef.current) {
-      try {
-        const nodePosition = {
-          x: node.x,
-          y: node.y,
-          z: node.z || 0,
-        };
+      if (fgRef.current) {
+        try {
+          const nodePosition = {
+            x: node.x,
+            y: node.y,
+            z: node.z || 0,
+          };
 
-        const filteredTriples = await fetchTriplesForNode(node.id, endpoint);
-        const newGraphData = transformToGraphData(filteredTriples);
+          const filteredTriples = await fetchTriplesForNode(node.id, endpoint);
+          const newGraphData = transformToGraphData(filteredTriples);
 
-        const targetNode = newGraphData.nodes.find((n) => n.id === node.id);
-        if (targetNode) {
-          targetNode.x = nodePosition.x;
-          targetNode.y = nodePosition.y;
-          if (viewMode === "3D") targetNode.z = nodePosition.z;
+          const targetNode = newGraphData.nodes.find((n) => n.id === node.id);
+          if (targetNode) {
+            targetNode.x = nodePosition.x;
+            targetNode.y = nodePosition.y;
+            if (viewMode === "3D") targetNode.z = nodePosition.z;
 
-          targetNode.fx = nodePosition.x;
-          targetNode.fy = nodePosition.y;
-          if (viewMode === "3D") targetNode.fz = nodePosition.z;
+            targetNode.fx = nodePosition.x;
+            targetNode.fy = nodePosition.y;
+            if (viewMode === "3D") targetNode.fz = nodePosition.z;
+          }
+
+          setGraphHistory((prevHistory) => {
+            const updatedHistory = prevHistory.slice(
+              0,
+              currentHistoryIndex + 1
+            );
+            updatedHistory.push({ graphData, selectedTriple: node });
+            return updatedHistory;
+          });
+          setCurrentHistoryIndex((prevIndex) => prevIndex + 1);
+
+          setGraphData(newGraphData);
+        } catch (error) {
+          console.error("Error fetching triples:", error);
         }
-
-        setGraphHistory((prevHistory) => {
-          const updatedHistory = prevHistory.slice(0, currentHistoryIndex + 1);
-          updatedHistory.push({ graphData, selectedTriple: node });
-          return updatedHistory;
-        });
-        setCurrentHistoryIndex((prevIndex) => prevIndex + 1);
-
-        setGraphData(newGraphData);
-      } catch (error) {
-        console.error("Error fetching triples:", error);
       }
-    }
-  }, [viewMode, graphData, currentHistoryIndex, endpoint]);
+    },
+    [viewMode, graphData, currentHistoryIndex, endpoint]
+  );
 
   const handleEngineStop = useCallback(() => {
     if (isInitialLoad && fgRef.current) {
@@ -142,7 +152,8 @@ const GraphVisualization = ({ endpoint }) => {
 
   const goBack = useCallback(() => {
     if (currentHistoryIndex > 0) {
-      const { graphData, selectedTriple } = graphHistory[currentHistoryIndex - 1];
+      const { graphData, selectedTriple } =
+        graphHistory[currentHistoryIndex - 1];
       setGraphData(graphData);
       setSelectedTriple(selectedTriple);
       setCurrentHistoryIndex((prevIndex) => prevIndex - 1);
@@ -151,7 +162,8 @@ const GraphVisualization = ({ endpoint }) => {
 
   const goForward = useCallback(() => {
     if (currentHistoryIndex < graphHistory.length - 1) {
-      const { graphData, selectedTriple } = graphHistory[currentHistoryIndex + 1];
+      const { graphData, selectedTriple } =
+        graphHistory[currentHistoryIndex + 1];
       setGraphData(graphData);
       setSelectedTriple(selectedTriple);
       setCurrentHistoryIndex((prevIndex) => prevIndex + 1);
@@ -161,8 +173,12 @@ const GraphVisualization = ({ endpoint }) => {
   const applyFilters = useCallback(async () => {
     if (!shouldSearch) return;
 
-    console.log("Applying filters:", { subjectFilter, predicateFilter, objectFilter });
-    
+    console.log("Applying filters:", {
+      subjectFilter,
+      predicateFilter,
+      objectFilter,
+    });
+
     if (!subjectFilter && !predicateFilter && !objectFilter) {
       resetGraph();
       return;
@@ -173,7 +189,7 @@ const GraphVisualization = ({ endpoint }) => {
       const filters = {
         subject: subjectFilter,
         predicate: predicateFilter,
-        object: objectFilter
+        object: objectFilter,
       };
 
       console.log("Sending search request with filters:", filters);
@@ -190,7 +206,10 @@ const GraphVisualization = ({ endpoint }) => {
       console.log("Transformed graph data:", newGraphData);
 
       if (showCreators) {
-        const enhancedData = enhanceGraphDataWithCreators(newGraphData, searchResults);
+        const enhancedData = enhanceGraphDataWithCreators(
+          newGraphData,
+          searchResults
+        );
         console.log("Enhanced graph data with creators:", enhancedData);
         setGraphData(enhancedData);
       } else {
@@ -209,12 +228,22 @@ const GraphVisualization = ({ endpoint }) => {
       setIsSearching(false);
       setShouldSearch(false);
     }
-  }, [subjectFilter, predicateFilter, objectFilter, endpoint, showCreators, enhanceGraphDataWithCreators, resetGraph, currentHistoryIndex, shouldSearch]);
+  }, [
+    subjectFilter,
+    predicateFilter,
+    objectFilter,
+    endpoint,
+    showCreators,
+    enhanceGraphDataWithCreators,
+    resetGraph,
+    currentHistoryIndex,
+    shouldSearch,
+  ]);
 
   // Handle search input changes
   const handleSearchInput = useCallback((type, value) => {
     console.log(`Search input changed - type: ${type}, value: ${value}`);
-    
+
     // Clear any existing timeout
     if (searchTimeoutRef.current) {
       clearTimeout(searchTimeoutRef.current);
@@ -222,13 +251,13 @@ const GraphVisualization = ({ endpoint }) => {
 
     // Update the appropriate filter
     switch (type) {
-      case 'subject':
+      case "subject":
         setSubjectFilter(value);
         break;
-      case 'predicate':
+      case "predicate":
         setPredicateFilter(value);
         break;
-      case 'object':
+      case "object":
         setObjectFilter(value);
         break;
       default:
@@ -257,7 +286,7 @@ const GraphVisualization = ({ endpoint }) => {
         style={{
           position: "absolute",
           top: "75px",
-          right: "10px",
+          left: "10px",
           zIndex: 50,
           width: "143px",
         }}
@@ -268,7 +297,13 @@ const GraphVisualization = ({ endpoint }) => {
       <button
         className="navigation-button"
         onClick={goBack}
-        style={{ position: "absolute", top: "110px", right: "83px", width: "70px", zIndex: 50 }}
+        style={{
+          position: "absolute",
+          top: "110px",
+          left: "10px",
+          width: "70px",
+          zIndex: 50,
+        }}
         disabled={currentHistoryIndex <= 0}
       >
         Previous
@@ -276,7 +311,13 @@ const GraphVisualization = ({ endpoint }) => {
       <button
         className="navigation-button"
         onClick={goForward}
-        style={{ position: "absolute", top: "110px", right: "10px", width: "70px", zIndex: 50 }}
+        style={{
+          position: "absolute",
+          top: "110px",
+          left: "83px",
+          width: "70px",
+          zIndex: 50,
+        }}
         disabled={currentHistoryIndex >= graphHistory.length - 1}
       >
         Next
@@ -331,7 +372,7 @@ const GraphVisualization = ({ endpoint }) => {
           <input
             type="text"
             value={subjectFilter}
-            onChange={(e) => handleSearchInput('subject', e.target.value)}
+            onChange={(e) => handleSearchInput("subject", e.target.value)}
             placeholder="Subject"
             style={{
               padding: "5px",
@@ -344,7 +385,7 @@ const GraphVisualization = ({ endpoint }) => {
           <input
             type="text"
             value={predicateFilter}
-            onChange={(e) => handleSearchInput('predicate', e.target.value)}
+            onChange={(e) => handleSearchInput("predicate", e.target.value)}
             placeholder="Predicate"
             style={{
               padding: "5px",
@@ -357,7 +398,7 @@ const GraphVisualization = ({ endpoint }) => {
           <input
             type="text"
             value={objectFilter}
-            onChange={(e) => handleSearchInput('object', e.target.value)}
+            onChange={(e) => handleSearchInput("object", e.target.value)}
             placeholder="Object"
             style={{
               padding: "5px",
@@ -392,9 +433,27 @@ const GraphVisualization = ({ endpoint }) => {
 
             ctx.beginPath();
             ctx.arc(x + radius, y + radius, radius, Math.PI, 1.5 * Math.PI);
-            ctx.arc(x + width - radius, y + radius, radius, 1.5 * Math.PI, 2 * Math.PI);
-            ctx.arc(x + width - radius, y + height - radius, radius, 0, 0.5 * Math.PI);
-            ctx.arc(x + radius, y + height - radius, radius, 0.5 * Math.PI, Math.PI);
+            ctx.arc(
+              x + width - radius,
+              y + radius,
+              radius,
+              1.5 * Math.PI,
+              2 * Math.PI
+            );
+            ctx.arc(
+              x + width - radius,
+              y + height - radius,
+              radius,
+              0,
+              0.5 * Math.PI
+            );
+            ctx.arc(
+              x + radius,
+              y + height - radius,
+              radius,
+              0.5 * Math.PI,
+              Math.PI
+            );
             ctx.closePath();
             ctx.fill();
 
