@@ -211,14 +211,6 @@ const GraphVisualization = ({ endpoint }) => {
     }
   }, [subjectFilter, predicateFilter, objectFilter, endpoint, showCreators, enhanceGraphDataWithCreators, resetGraph, currentHistoryIndex, shouldSearch]);
 
-  const resetFilters = useCallback(() => {
-    setSubjectFilter("");
-    setPredicateFilter("");
-    setObjectFilter("");
-    setShouldSearch(false);
-    resetGraph();
-  }, [resetGraph]);
-
   // Handle search input changes
   const handleSearchInput = useCallback((type, value) => {
     console.log(`Search input changed - type: ${type}, value: ${value}`);
@@ -265,7 +257,7 @@ const GraphVisualization = ({ endpoint }) => {
         style={{
           position: "absolute",
           top: "75px",
-          left: "10px",
+          right: "10px",
           zIndex: 50,
           width: "143px",
         }}
@@ -375,7 +367,6 @@ const GraphVisualization = ({ endpoint }) => {
               width: "100px",
             }}
           />
-          <button onClick={resetFilters}>reset</button>
         </div>
       </div>
 
